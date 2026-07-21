@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { Link } from "expo-router";
 
 import { useTheme } from "../styles/theme";
 import { useDevice } from "../app/device-context";
@@ -55,6 +56,26 @@ export default function Footer() {
     legalLink: {
       color: colors.textMuted,
     },
+    navLinksRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    footerNavLink: {
+      textDecorationLine: "none",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    footerNavLinkText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.text,
+    },
+    footerNavDot: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
   });
 
   return (
@@ -66,12 +87,33 @@ export default function Footer() {
           {isDesktopWeb && (
             <>
               <Text style={style.divider}> · </Text>
-              <Text style={style.tagline}>“Playing Games to Study”</Text>
+              <Text style={style.tagline}>"Playing Games to Study"</Text>
             </>
           )}
           <Text style={style.divider}> · </Text>
           <Text style={style.copyright}>© {new Date().getFullYear()}</Text>
+          {!isDesktopWeb && (
+            <>
+              <Text style={style.divider}> · </Text>
+              <Link href="/about"><Text style={style.footerNavLinkText}>About</Text></Link>
+              <Text style={style.divider}> · </Text>
+              <Link href="/contact"><Text style={style.footerNavLinkText}>Contact</Text></Link>
+            </>
+          )}
         </Text>
+
+        {/* Navigation Links (desktop only) */}
+        {isDesktopWeb && (
+          <View style={style.navLinksRow}>
+            <Link href="/about" style={style.footerNavLink}>
+              <Text style={style.footerNavLinkText}>About</Text>
+            </Link>
+            <Text style={style.footerNavDot}>·</Text>
+            <Link href="/contact" style={style.footerNavLink}>
+              <Text style={style.footerNavLinkText}>Contact</Text>
+            </Link>
+          </View>
+        )}
 
         {/* Right Section: Contact & Policies */}
         <Text style={style.rightText}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Image, Animated, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, Animated, Alert, Platform, TextInput } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,6 +25,18 @@ export default function WebTopNav() {
   const rotateAnim = useMemo(() => new Animated.Value(0), []);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [profileHovering, setProfileHovering] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  const handleSearch = () => {
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/search?query=${encodeURIComponent(q)}`);
+      setSearchQuery("");
+    } else {
+      router.push("/search");
+    }
+  };
 
   const username = user?.displayName || user?.email?.split("@")[0] || "User";
   const photo = profilePhoto || user?.photoData || user?.photoURL || null;
@@ -195,16 +207,38 @@ export default function WebTopNav() {
       alignItems: "center",
       gap: 16,
     },
-    navLink: {
-      textDecorationLine: "none",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
+    searchBarWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 22,
+      paddingHorizontal: 14,
+      height: 40,
+      minWidth: 200,
+      maxWidth: 320,
+      flex: 1,
     },
-    navLinkText: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: colors.textMuted,
+    searchBarWrapFocused: {
+      borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text,
+      paddingVertical: 0,
+      marginLeft: 8,
+      outlineStyle: "none",
+    },
+    searchBtn: {
+      padding: 4,
+      borderRadius: 12,
+      marginLeft: 4,
     },
     themeToggleBtn: {
       width: 40,
@@ -378,15 +412,31 @@ export default function WebTopNav() {
         </View>
 
         <View style={styles.rightCluster}>
-          <Link href="/about" style={styles.navLink}>
-            <Text style={styles.navLinkText}>About</Text>
-          </Link>
-          <Link href="/contact" style={styles.navLink}>
-            <Text style={styles.navLinkText}>Contact</Text>
-          </Link>
-          <Link href="/search" style={styles.navLink}>
-            <Text style={styles.navLinkText}>Search</Text>
-          </Link>
+          <View style={[
+            styles.searchBarWrap,
+            searchFocused && styles.searchBarWrapFocused,
+          ]}>
+            <Ionicons name="search" size={17} color={colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search games…"
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable
+                onPress={() => setSearchQuery("")}
+                style={styles.searchBtn}
+              >
+                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+              </Pressable>
+            )}
+          </View>
 
           <Link href="/submit" style={styles.submitLinkBtn}>
             <LinearGradient
