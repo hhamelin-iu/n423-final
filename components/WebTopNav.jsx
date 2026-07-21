@@ -13,11 +13,13 @@ import { useAuth } from "../src/auth/AuthContext";
 import { auth, db } from "../src/firebase/firebaseConfig";
 import { isFirebaseConfigured } from "../src/services/dataService";
 import { useTheme } from "../styles/theme";
+import { useAlert } from "../src/context/AlertContext";
 
 export default function WebTopNav() {
   const { isDesktopWeb } = useDevice();
   const { user, signOut, isDemoMode, signInAsDemo } = useAuth();
   const { mode, toggleTheme, colors, isDark } = useTheme();
+  const { showAlert } = useAlert();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const rotateAnim = useMemo(() => new Animated.Value(0), []);
@@ -26,20 +28,6 @@ export default function WebTopNav() {
 
   const username = user?.displayName || user?.email?.split("@")[0] || "User";
   const photo = profilePhoto || user?.photoData || user?.photoURL || null;
-
-  const showSweetAlert = async (titleMsg, message, type = "info") => {
-    if (Platform.OS === "web") {
-      try {
-        // eslint-disable-next-line global-require
-        const swal = require("sweetalert");
-        await swal(titleMsg, message, type);
-        return;
-      } catch (err) {
-        console.warn("SweetAlert auth notice failed, falling back to native alert", err);
-      }
-    }
-    Alert.alert(titleMsg, message);
-  };
 
   useEffect(() => {
     if (!user) setOpen(false);
@@ -135,11 +123,11 @@ export default function WebTopNav() {
     setOpen(false);
     try {
       await signOut();
-      await showSweetAlert("Logged out", "See you next time!", "success");
+      await showAlert("Logged out", "See you next time!", "success");
       router.replace("/login");
     } catch (err) {
       console.warn("Logout failed", err);
-      await showSweetAlert("Error", "Could not log out. Please try again.", "error");
+      await showAlert("Error", "Could not log out. Please try again.", "error");
     }
   };
 

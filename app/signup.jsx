@@ -22,6 +22,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
   const hasFirebase = isFirebaseConfigured();
 
   useEffect(() => {
@@ -119,6 +120,16 @@ export default function SignupScreen() {
       borderColor: colors.border,
       color: colors.text,
     },
+    inputFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+      ...Platform.select({
+        web: {
+          outlineStyle: 'none',
+          boxShadow: `0 0 0 3px ${colors.badgeBorder}`,
+        },
+      }),
+    },
     error: {
       color: '#EF4444',
       fontWeight: '600',
@@ -163,34 +174,40 @@ export default function SignupScreen() {
               <TextInput
                 value={username}
                 onChangeText={setUsername}
+                onFocus={() => setFocusedField('username')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Username"
                 placeholderTextColor={colors.textLight}
                 returnKeyType="next"
                 onSubmitEditing={handleSignup}
-                style={styles.input}
+                style={[styles.input, focusedField === 'username' && styles.inputFocused]}
               />
               <Text style={styles.label}>Email</Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="user@example.com"
                 placeholderTextColor={colors.textLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 returnKeyType="next"
                 onSubmitEditing={handleSignup}
-                style={styles.input}
+                style={[styles.input, focusedField === 'email' && styles.inputFocused]}
               />
               <Text style={styles.label}>Password</Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Password"
                 placeholderTextColor={colors.textLight}
                 secureTextEntry
                 returnKeyType="go"
                 onSubmitEditing={handleSignup}
-                style={styles.input}
+                style={[styles.input, focusedField === 'password' && styles.inputFocused]}
               />
               {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -217,3 +234,4 @@ export default function SignupScreen() {
     </KeyboardAvoidingView>
   );
 }
+

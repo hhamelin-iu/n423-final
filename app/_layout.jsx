@@ -10,6 +10,7 @@ import { AuthProvider } from '../src/auth/AuthContext';
 import { DeviceProvider, useDevice } from './device-context';
 
 import { ThemeProvider, useTheme } from '../styles/theme';
+import { AlertProvider } from '../src/context/AlertContext';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -29,7 +30,9 @@ export default function RootLayout() {
     <AuthProvider>
       <DeviceProvider>
         <ThemeProvider>
-          <AppContent />
+          <AlertProvider>
+            <AppContent />
+          </AlertProvider>
         </ThemeProvider>
       </DeviceProvider>
     </AuthProvider>

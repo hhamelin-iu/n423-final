@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDevice } from "../app/device-context";
 import { useAuth } from '../src/auth/AuthContext';
 import { useTheme } from '../styles/theme';
+import { useAlert } from '../src/context/AlertContext';
 
 export default function GameCard({
     submissionId,
@@ -27,6 +28,7 @@ export default function GameCard({
     const { isDesktopWeb } = useDevice();
     const { user } = useAuth();
     const { colors, isDark } = useTheme();
+    const { showAlert, showConfirm } = useAlert();
 
     const infoTextNumberOfLines = 3;
     const infoTextLineHeight = isDesktopWeb ? 18 : 16;
@@ -75,57 +77,22 @@ export default function GameCard({
         if (isDesktopWeb) setNotesOpen(false);
     }, [isDesktopWeb]);
 
-    const getWebSweetAlert = () => {
-        if (Platform.OS !== 'web') return null;
-        try {
-            // eslint-disable-next-line global-require
-            return require('sweetalert');
-        } catch (err) {
-            console.warn('SweetAlert unavailable', err);
-            return null;
-        }
-    };
-
-    const confirmDelete = () => {
-        const swalAlert = getWebSweetAlert();
-        if (swalAlert) {
-            return swalAlert({
-                title: 'Delete submission',
-                text: 'Are you sure you want to delete this submission?',
-                icon: 'warning',
-                buttons: ['Cancel', 'Delete'],
-                dangerMode: true,
-            }).catch((err) => {
-                console.warn('SweetAlert delete confirm failed, falling back to native alert', err);
-                return false;
-            });
-        }
-
-        return new Promise((resolve) => {
-            Alert.alert('Delete submission', 'Are you sure you want to delete this submission?', [
-                { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-                { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
-            ]);
+    const confirmDelete = async () => {
+        return await showConfirm({
+            title: 'Delete submission',
+            text: 'Are you sure you want to delete this submission?',
+            type: 'warning',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            dangerMode: true,
         });
     };
 
     const showDeleteResult = async (success) => {
-        const swalAlert = getWebSweetAlert();
-        if (swalAlert) {
-            try {
-                await swalAlert(
-                    success ? 'Deleted' : 'Error',
-                    success ? 'Submission removed.' : 'Could not delete this submission.',
-                    success ? 'success' : 'error'
-                );
-                return;
-            } catch (err) {
-                console.warn('SweetAlert delete result failed, falling back to native alert', err);
-            }
-        }
-        Alert.alert(
+        await showAlert(
             success ? 'Deleted' : 'Error',
-            success ? 'Submission removed.' : 'Could not delete this submission.'
+            success ? 'Submission removed.' : 'Could not delete this submission.',
+            success ? 'success' : 'error'
         );
     };
 

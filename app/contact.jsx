@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useState } from 'react';
 
 import { useTheme } from '../styles/theme';
@@ -6,30 +6,19 @@ import { useDevice } from '../app/device-context';
 
 import Footer from '../components/Footer';
 import AnimatedButton from '../components/AnimatedButton';
+import { useAlert } from '../src/context/AlertContext';
 
 export default function ContactScreen() {
   const { isDesktopWeb } = useDevice();
   const { colors, styles: themeStyles } = useTheme();
+  const { showAlert } = useAlert();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  const showSweetAlert = async (titleMsg, messageStr, type = 'info') => {
-    if (Platform.OS === 'web') {
-      try {
-        // eslint-disable-next-line global-require
-        const swal = require('sweetalert');
-        await swal(titleMsg, messageStr, type);
-        return;
-      } catch (err) {
-        console.warn('SweetAlert failed', err);
-      }
-    }
-    Alert.alert(titleMsg, messageStr);
-  };
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleSubmit = async () => {
     setError('');
@@ -44,7 +33,7 @@ export default function ContactScreen() {
     }
 
     setSubmitted(true);
-    await showSweetAlert('Message Sent!', 'Thank you for reaching out. We will get back to you soon!', 'success');
+    await showAlert('Message Sent!', 'Thank you for reaching out. We will get back to you soon!', 'success');
     setName('');
     setEmail('');
     setMessage('');
@@ -84,6 +73,16 @@ export default function ContactScreen() {
       borderColor: colors.border,
       color: colors.text,
     },
+    inputFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+      ...Platform.select({
+        web: {
+          outlineStyle: 'none',
+          boxShadow: `0 0 0 3px ${colors.badgeBorder}`,
+        },
+      }),
+    },
     textarea: {
       minHeight: 120,
       textAlignVertical: 'top',
@@ -118,10 +117,12 @@ export default function ContactScreen() {
                 setError('');
                 setSubmitted(false);
               }}
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
               placeholder="Your Name"
               placeholderTextColor={colors.textLight}
               returnKeyType="next"
-              style={styles.input}
+              style={[styles.input, focusedField === 'name' && styles.inputFocused]}
             />
 
             <Text style={styles.label}>Email</Text>
@@ -132,12 +133,14 @@ export default function ContactScreen() {
                 setError('');
                 setSubmitted(false);
               }}
+              onFocus={() => setFocusedField('email')}
+              onBlur={() => setFocusedField(null)}
               placeholder="user@example.com"
               placeholderTextColor={colors.textLight}
               keyboardType="email-address"
               autoCapitalize="none"
               returnKeyType="next"
-              style={styles.input}
+              style={[styles.input, focusedField === 'email' && styles.inputFocused]}
             />
 
             <Text style={styles.label}>Message</Text>
@@ -148,10 +151,12 @@ export default function ContactScreen() {
                 setError('');
                 setSubmitted(false);
               }}
+              onFocus={() => setFocusedField('message')}
+              onBlur={() => setFocusedField(null)}
               placeholder="Your Message..."
               placeholderTextColor={colors.textLight}
               multiline
-              style={[styles.input, styles.textarea]}
+              style={[styles.input, styles.textarea, focusedField === 'message' && styles.inputFocused]}
             />
 
             {!!error && <Text style={styles.errorText}>{error}</Text>}
@@ -166,3 +171,4 @@ export default function ContactScreen() {
     </KeyboardAvoidingView>
   );
 }
+

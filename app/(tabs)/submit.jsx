@@ -7,6 +7,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { collection, query, orderBy, startAt, endAt, limit, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { useTheme } from '../../styles/theme';
+import { useAlert } from '../../src/context/AlertContext';
 import Footer from "../../components/Footer";
 import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
@@ -109,6 +110,16 @@ export default function CreateScreen() {
         borderColor: colors.border,
         color: colors.text,
         marginBottom: 8,
+      },
+      inputFocused: {
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
+        ...Platform.select({
+          web: {
+            outlineStyle: 'none',
+            boxShadow: `0 0 0 3px ${colors.badgeBorder}`,
+          },
+        }),
       },
       inputMobile: {
         fontSize: 15,
@@ -713,19 +724,8 @@ export default function CreateScreen() {
         setEditingOwnerId('');
         skipNextSearch.current = false;
     }, []);
-    const showSweetAlert = async (titleMsg, message, type = 'info') => {
-        if (Platform.OS === 'web') {
-            try {
-                // eslint-disable-next-line global-require
-                const swal = require('sweetalert');
-                await swal(titleMsg, message, type);
-                return;
-            } catch (err) {
-                console.warn('SweetAlert failed, falling back to native alert', err);
-            }
-        }
-        Alert.alert(titleMsg, message);
-    };
+    const { showAlert } = useAlert();
+    const [focusedField, setFocusedField] = useState(null);
 
     const disabledFieldStyle = { backgroundColor: "#E4E4E4", borderColor: "#CFCFCF", borderWidth: 1 };
 
@@ -1269,7 +1269,7 @@ export default function CreateScreen() {
         if (missing.length) {
             const message = `Please fill ${missing.join(', ')}${missing.includes('sign in') ? ' (sign in required).' : '.'}`;
             setSubmitError(message);
-            showSweetAlert('Missing info', message, 'error');
+            showAlert('Missing info', message, 'error');
             return false;
         }
         return true;
@@ -1359,12 +1359,12 @@ export default function CreateScreen() {
 
             const successMessage = isEditing ? 'Submission updated.' : 'Submission saved to LOREBoards.';
             setSubmitSuccess(successMessage);
-            await showSweetAlert('Success', successMessage, 'success');
+            await showAlert('Success', successMessage, 'success');
             router.replace('/');
         } catch (err) {
             console.error(err);
             setSubmitError(err?.message || 'Could not submit. Try again.');
-            showSweetAlert('Error', err?.message || 'Could not submit. Try again.', 'error');
+            showAlert('Error', err?.message || 'Could not submit. Try again.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -1504,11 +1504,16 @@ export default function CreateScreen() {
                                             styles.input,
                                             !isDesktopWeb && styles.inputMobile,
                                             titleLocked && disabledFieldStyle,
+                                            focusedField === 'title' && styles.inputFocused,
                                         ]}
                                         editable={!titleLocked}
                                         focusable={!titleLocked}
                                         onLayout={updateTitleLayout}
-                                        onFocus={updateTitleLayout}
+                                        onFocus={() => {
+                                            updateTitleLayout();
+                                            setFocusedField('title');
+                                        }}
+                                        onBlur={() => setFocusedField(null)}
                                     />
                                     {titleLocked && (
                                         <Pressable style={styles.editButton} onPress={() => {
@@ -1558,9 +1563,12 @@ export default function CreateScreen() {
                                                 styles.input,
                                                 !isDesktopWeb && styles.inputMobile,
                                                 (!manualEntry || metadataLocked) && disabledFieldStyle,
+                                                focusedField === 'year' && styles.inputFocused,
                                             ]}
                                             editable={manualEntry && !metadataLocked}
                                             focusable={manualEntry && !metadataLocked}
+                                            onFocus={() => setFocusedField('year')}
+                                            onBlur={() => setFocusedField(null)}
                                             keyboardType="numeric"
                                         />
                                     </View>
@@ -1577,9 +1585,12 @@ export default function CreateScreen() {
                                         styles.input,
                                         !isDesktopWeb && styles.inputMobile,
                                         (!manualEntry || metadataLocked) && disabledFieldStyle,
+                                        focusedField === 'developer' && styles.inputFocused,
                                     ]}
                                     editable={manualEntry && !metadataLocked}
                                     focusable={manualEntry && !metadataLocked}
+                                    onFocus={() => setFocusedField('developer')}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </View>
 
@@ -1873,7 +1884,15 @@ export default function CreateScreen() {
                                         onChangeText={setCompletionValue}
                                         placeholder="Completion"
                                         placeholderTextColor="rgba(0,0,0,0.5)"
-                                        style={[styles.input, styles.inputTight, !isDesktopWeb && styles.inputMobile, { flex: 1 }]}
+                                        style={[
+                                            styles.input,
+                                            styles.inputTight,
+                                            !isDesktopWeb && styles.inputMobile,
+                                            focusedField === 'completionValue' && styles.inputFocused,
+                                            { flex: 1 }
+                                        ]}
+                                        onFocus={() => setFocusedField('completionValue')}
+                                        onBlur={() => setFocusedField(null)}
                                     />
                                 </View>
                             </View>
@@ -1887,7 +1906,14 @@ export default function CreateScreen() {
                                         placeholder="Add your notes..."
                                         placeholderTextColor="rgba(0,0,0,0.5)"
                                         multiline
-                                        style={[styles.input, styles.textarea, !isDesktopWeb && styles.inputMobile]}
+                                        style={[
+                                            styles.input,
+                                            styles.textarea,
+                                            !isDesktopWeb && styles.inputMobile,
+                                            focusedField === 'playerNotes' && styles.inputFocused,
+                                        ]}
+                                        onFocus={() => setFocusedField('playerNotes')}
+                                        onBlur={() => setFocusedField(null)}
                                     />
                                 </View>
                             </View>

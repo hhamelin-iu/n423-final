@@ -43,6 +43,9 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [focusedField, setFocusedField] = useState(null);
+  const [filtersHovered, setFiltersHovered] = useState(false);
+  const [hoveredPill, setHoveredPill] = useState(null);
 
   useEffect(() => {
     const q = getParam('query');
@@ -170,11 +173,29 @@ export default function SearchScreen() {
       fontSize: 16,
       color: colors.text,
     },
+    inputFocused: {
+      borderColor: colors.primary,
+      ...Platform.select({
+        web: {
+          outlineStyle: 'none',
+          boxShadow: `0 0 0 3px ${colors.badgeBorder}`,
+        },
+      }),
+    },
     paramToggleBtn: {
       backgroundColor: colors.primary,
       paddingHorizontal: 18,
       paddingVertical: 14,
       borderRadius: 14,
+      cursor: 'pointer',
+    },
+    paramToggleBtnHovered: {
+      backgroundColor: colors.primaryDark,
+      transform: [{ scale: 1.02 }],
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
     },
     paramToggleText: {
       color: '#FFFFFF',
@@ -215,6 +236,11 @@ export default function SearchScreen() {
       paddingHorizontal: 14,
       paddingVertical: 7,
       borderRadius: 20,
+      cursor: 'pointer',
+    },
+    sortPillHovered: {
+      borderColor: colors.primary,
+      transform: [{ scale: 1.03 }],
     },
     sortPillActive: {
       backgroundColor: colors.primary,
@@ -268,13 +294,17 @@ export default function SearchScreen() {
               <TextInput
                 value={queryText}
                 onChangeText={setQueryText}
+                onFocus={() => setFocusedField('search')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Search by game title, notes, developer, platform..."
                 placeholderTextColor={colors.textLight}
-                style={styles.searchInput}
+                style={[styles.searchInput, focusedField === 'search' && styles.inputFocused]}
               />
               <Pressable
-                style={styles.paramToggleBtn}
+                style={[styles.paramToggleBtn, filtersHovered && styles.paramToggleBtnHovered]}
                 onPress={() => setShowParameters((prev) => !prev)}
+                onHoverIn={() => setFiltersHovered(true)}
+                onHoverOut={() => setFiltersHovered(false)}
               >
                 <Text style={styles.paramToggleText}>
                   {showParameters ? 'Hide Filters' : 'Filters'}
@@ -288,9 +318,11 @@ export default function SearchScreen() {
                 <TextInput
                   value={userQuery}
                   onChangeText={setUserQuery}
+                  onFocus={() => setFocusedField('user')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Username or display name"
                   placeholderTextColor={colors.textLight}
-                  style={styles.paramInput}
+                  style={[styles.paramInput, focusedField === 'user' && styles.inputFocused]}
                 />
 
                 <Text style={[styles.paramLabel, { marginTop: 12 }]}>Sort By:</Text>
@@ -306,8 +338,11 @@ export default function SearchScreen() {
                       style={[
                         styles.sortPill,
                         sortOption === opt.key && styles.sortPillActive,
+                        hoveredPill === opt.key && styles.sortPillHovered,
                       ]}
                       onPress={() => setSortOption(opt.key)}
+                      onHoverIn={() => setHoveredPill(opt.key)}
+                      onHoverOut={() => setHoveredPill(null)}
                     >
                       <Text
                         style={[

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
@@ -10,32 +10,21 @@ import { useTheme } from '../styles/theme';
 import Footer from '../components/Footer';
 import { useDevice } from '../app/device-context';
 import AnimatedButton from '../components/AnimatedButton';
+import { useAlert } from '../src/context/AlertContext';
 
 export default function LoginScreen() {
   const { isDesktopWeb } = useDevice();
   const { colors, styles: themeStyles } = useTheme();
   const router = useRouter();
   const { user, loading, signInAsDemo } = useAuth();
+  const { showAlert } = useAlert();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
   const hasFirebase = isFirebaseConfigured();
-
-  const showSweetAlert = async (titleMsg, message, type = 'info') => {
-    if (Platform.OS === 'web') {
-      try {
-        // eslint-disable-next-line global-require
-        const swal = require('sweetalert');
-        await swal(titleMsg, message, type);
-        return;
-      } catch (err) {
-        console.warn('SweetAlert login notice failed, falling back to native alert', err);
-      }
-    }
-    Alert.alert(titleMsg, message);
-  };
 
   useEffect(() => {
     if (user) {
@@ -49,7 +38,7 @@ export default function LoginScreen() {
 
   const handleDemoLogin = async () => {
     signInAsDemo();
-    await showSweetAlert('Demo Mode Active', 'Welcome to LOREBoards portfolio demo!', 'success');
+    await showAlert('Demo Mode Active', 'Welcome to LOREBoards portfolio demo!', 'success');
     router.replace('/');
   };
 
@@ -92,7 +81,7 @@ export default function LoginScreen() {
       const credential = await signInWithEmailAndPassword(auth, emailToUse, password);
       const displayName =
         credential?.user?.displayName || credential?.user?.email?.split('@')[0] || 'Player';
-      await showSweetAlert('Logged in', `Welcome back, ${displayName}!`, 'success');
+      await showAlert('Logged in', `Welcome back, ${displayName}!`, 'success');
     } catch (e) {
       if (e?.code === 'permission-denied') {
         setError('Username lookup is blocked by Firestore rules. Please log in with your email.');
@@ -140,6 +129,16 @@ export default function LoginScreen() {
       borderColor: colors.border,
       color: colors.text,
     },
+    inputFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+      ...Platform.select({
+        web: {
+          outlineStyle: 'none',
+          boxShadow: `0 0 0 3px ${colors.badgeBorder}`,
+        },
+      }),
+    },
     error: {
       color: '#EF4444',
       fontWeight: '600',
@@ -185,24 +184,28 @@ export default function LoginScreen() {
               <TextInput
                 value={username}
                 onChangeText={setUsername}
+                onFocus={() => setFocusedField('username')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Username or email"
                 placeholderTextColor={colors.textLight}
                 autoCapitalize="none"
                 returnKeyType="next"
                 onSubmitEditing={handleLogin}
-                style={styles.input}
+                style={[styles.input, focusedField === 'username' && styles.inputFocused]}
               />
 
               <Text style={styles.label}>Password</Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Password"
                 placeholderTextColor={colors.textLight}
                 secureTextEntry
                 returnKeyType="go"
                 onSubmitEditing={handleLogin}
-                style={styles.input}
+                style={[styles.input, focusedField === 'password' && styles.inputFocused]}
               />
 
               {!!error && <Text style={styles.error}>{error}</Text>}
@@ -227,3 +230,4 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
+
