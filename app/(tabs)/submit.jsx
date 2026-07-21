@@ -13,6 +13,7 @@ import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
 import { db } from '../../src/firebase/firebaseConfig';
 import { MOCK_GAMES } from '../../src/services/mockGames';
+import { saveSubmission, getSubmissionById } from '../../src/services/dataService';
 
 export default function CreateScreen() {
     const router = useRouter();
@@ -809,15 +810,14 @@ export default function CreateScreen() {
             setLoadingEdit(true);
             setEditLoadError('');
             try {
-                const submissionSnap = await getDoc(doc(db, 'submissions', editingSubmissionId));
-                if (!submissionSnap.exists()) {
+                const data = await getSubmissionById(editingSubmissionId);
+                if (!data) {
                     if (!cancelled) {
                         setEditLoadError('Submission not found.');
                         setEditingSubmissionId('');
                     }
                     return;
                 }
-                const data = submissionSnap.data() || {};
                 if (cancelled) return;
 
                 skipNextSearch.current = true;
@@ -845,7 +845,7 @@ export default function CreateScreen() {
                 let developerFromGame = '';
                 let yearFromGame = '';
 
-                if (data.gameId) {
+                if (data.gameId && db) {
                     try {
                         const gameSnap = await getDoc(doc(db, 'games', data.gameId));
                         if (gameSnap.exists()) {
@@ -1176,8 +1176,14 @@ export default function CreateScreen() {
                 source: game?.source === 'igdb' ? 'igdb' : 'manual',
                 igdbId: game?.igdbId ? String(game.igdbId) : tgdbId || '',
                 manual: game?.source !== 'igdb',
-                updatedAt: serverTimestamp(),
+                updatedAt: db ? serverTimestamp() : new Date().toISOString(),
             };
+
+            if (!db) {
+                const localId = payload.source === 'igdb' && payload.igdbId ? `igdb_${payload.igdbId}` : `demo-game-${Date.now()}`;
+                setLoreGameId(localId);
+                return localId;
+            }
 
             if (payload.source === 'igdb' && payload.igdbId) {
                 const ref = doc(db, 'games', `igdb_${payload.igdbId}`);
@@ -1305,29 +1311,36 @@ export default function CreateScreen() {
                 igdbId: tgdbId || '',
                 source: manualEntry || !tgdbId ? 'manual' : 'igdb',
                 manual: manualEntry || !tgdbId,
-                updatedAt: serverTimestamp(),
+                updatedAt: db ? serverTimestamp() : new Date().toISOString(),
             };
 
             let gameId = loreGameId;
-            if (!gameId) {
-                if (baseGame.source === 'igdb' && baseGame.igdbId) {
-                    const ref = doc(db, 'games', `igdb_${baseGame.igdbId}`);
-                    const snap = await getDoc(ref);
-                    if (!snap.exists()) baseGame.createdAt = serverTimestamp();
-                    await setDoc(ref, baseGame, { merge: true });
-                    gameId = ref.id;
-                } else {
-                    const created = await addDoc(collection(db, 'games'), {
-                        ...baseGame,
-                        source: 'manual',
-                        manual: true,
-                        createdAt: serverTimestamp(),
-                    });
-                    gameId = created.id;
+            if (!db) {
+                if (!gameId) {
+                    gameId = baseGame.source === 'igdb' && baseGame.igdbId ? `igdb_${baseGame.igdbId}` : `demo-game-${Date.now()}`;
+                    setLoreGameId(gameId);
                 }
-                setLoreGameId(gameId);
             } else {
-                await setDoc(doc(db, 'games', gameId), baseGame, { merge: true });
+                if (!gameId) {
+                    if (baseGame.source === 'igdb' && baseGame.igdbId) {
+                        const ref = doc(db, 'games', `igdb_${baseGame.igdbId}`);
+                        const snap = await getDoc(ref);
+                        if (!snap.exists()) baseGame.createdAt = serverTimestamp();
+                        await setDoc(ref, baseGame, { merge: true });
+                        gameId = ref.id;
+                    } else {
+                        const created = await addDoc(collection(db, 'games'), {
+                            ...baseGame,
+                            source: 'manual',
+                            manual: true,
+                            createdAt: serverTimestamp(),
+                        });
+                        gameId = created.id;
+                    }
+                    setLoreGameId(gameId);
+                } else {
+                    await setDoc(doc(db, 'games', gameId), baseGame, { merge: true });
+                }
             }
 
             const submissionPayload = {
@@ -1345,16 +1358,20 @@ export default function CreateScreen() {
                 playerNotes: playerNotes.trim(),
                 source: baseGame.source,
                 manual: baseGame.manual,
-                updatedAt: serverTimestamp(),
+                updatedAt: db ? serverTimestamp() : new Date().toISOString(),
             };
 
-            if (isEditing) {
-                await setDoc(doc(db, 'submissions', editingSubmissionId), submissionPayload, { merge: true });
+            if (!db) {
+                await saveSubmission(submissionPayload, user, isEditing ? editingSubmissionId : null);
             } else {
-                await addDoc(collection(db, 'submissions'), {
-                    ...submissionPayload,
-                    createdAt: serverTimestamp(),
-                });
+                if (isEditing) {
+                    await setDoc(doc(db, 'submissions', editingSubmissionId), submissionPayload, { merge: true });
+                } else {
+                    await addDoc(collection(db, 'submissions'), {
+                        ...submissionPayload,
+                        createdAt: serverTimestamp(),
+                    });
+                }
             }
 
             const successMessage = isEditing ? 'Submission updated.' : 'Submission saved to LOREBoards.';

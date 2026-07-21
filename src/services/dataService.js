@@ -2,9 +2,164 @@ import { collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
 import { db } from '../firebase/firebaseConfig';
 import { DEMO_USER, INITIAL_DEMO_SUBMISSIONS } from './demoData';
 import { MOCK_GAMES, MOCK_PLATFORMS } from './mockGames';
+import { SIMULATED_FEED_SUBMISSIONS } from './simulatedData';
 
 const STORAGE_KEY_SUBMISSIONS = 'loreboards_demo_submissions_v9';
 const STORAGE_KEY_USER_PROFILE = 'loreboards_demo_user_profile';
+
+const demoChannel = typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('loreboards_demo_sync')
+  : null;
+
+// Unique session tab ID to coordinate single generator tab leadership
+const tabId = typeof window !== 'undefined' ? Math.random().toString(36).substr(2, 9) : 'native';
+
+let currentDemoSubmissions = null;
+let nextSimulatedIndex = 0;
+const activeCallbacks = new Set();
+let globalTimerId = null;
+
+function ensureDemoSubmissionsInitialized() {
+  if (currentDemoSubmissions === null) {
+    currentDemoSubmissions = getLocalSubmissions();
+  }
+  return currentDemoSubmissions;
+}
+
+function triggerActiveCallbacks() {
+  activeCallbacks.forEach(({ callback, limitCount }) => {
+    callback({ data: currentDemoSubmissions.slice(0, limitCount), error: null });
+  });
+}
+
+// Leadership lock mechanism: only one tab acquires card generation authority
+function acquireLeadershipLock() {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    const now = Date.now();
+    const rawTime = window.localStorage.getItem('loreboards_sync_lock_time');
+    const owner = window.localStorage.getItem('loreboards_sync_lock_owner');
+    const lockTime = rawTime ? parseInt(rawTime, 10) : 0;
+
+    // Claim or renew lock if we already own it, or lock is unowned / expired (over 6 seconds old)
+    if (owner === tabId || !owner || now - lockTime > 6000) {
+      window.localStorage.setItem('loreboards_sync_lock_time', String(now));
+      window.localStorage.setItem('loreboards_sync_lock_owner', tabId);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Failed to access localStorage for leader lock', err);
+  }
+  return false;
+}
+
+// Listen for broadcast sync events from other tabs
+if (demoChannel) {
+  demoChannel.onmessage = (event) => {
+    const { type, submission, id, nextIndex } = event.data || {};
+    ensureDemoSubmissionsInitialized();
+
+    if (type === 'NEW_SIMULATED_SUBMISSION') {
+      if (typeof nextIndex === 'number') {
+        nextSimulatedIndex = nextIndex;
+      }
+      if (!currentDemoSubmissions.some((s) => s.id === submission.id)) {
+        const updated = [submission, ...currentDemoSubmissions];
+        const capped = updated.slice(0, 60);
+        saveLocalSubmissions(capped);
+        triggerActiveCallbacks();
+      }
+    } else if (type === 'SAVE_SUBMISSION') {
+      const index = currentDemoSubmissions.findIndex((s) => s.id === submission.id);
+      let updated;
+      if (index !== -1) {
+        updated = currentDemoSubmissions.map((item) => item.id === submission.id ? submission : item);
+      } else {
+        updated = [submission, ...currentDemoSubmissions];
+      }
+      currentDemoSubmissions = updated.slice(0, 60);
+      triggerActiveCallbacks();
+    } else if (type === 'DELETE_SUBMISSION') {
+      currentDemoSubmissions = currentDemoSubmissions.filter((item) => item.id !== id);
+      triggerActiveCallbacks();
+    }
+  };
+}
+
+const startGlobalSimulation = () => {
+  if (globalTimerId) return;
+
+  const scheduleNext = (delayMs) => {
+    globalTimerId = setTimeout(() => {
+      // 1. Attempt to claim/renew generator lock
+      const isLeader = acquireLeadershipLock();
+      
+      // 2. Check tab visibility (hidden tabs yield lock to allow active tab to generate)
+      const isVisible = typeof document !== 'undefined' && !document.hidden;
+
+      let nextDelay = 1500; // Followers check lock status every 1.5 seconds
+
+      if (isLeader && isVisible) {
+        if (Array.isArray(SIMULATED_FEED_SUBMISSIONS) && SIMULATED_FEED_SUBMISSIONS.length > 0) {
+          ensureDemoSubmissionsInitialized();
+
+          // Find the next game template that is not already in currentDemoSubmissions by title or igdbId
+          let template = null;
+          let attempts = 0;
+          while (attempts < SIMULATED_FEED_SUBMISSIONS.length) {
+            const currentT = SIMULATED_FEED_SUBMISSIONS[nextSimulatedIndex];
+            nextSimulatedIndex = (nextSimulatedIndex + 1) % SIMULATED_FEED_SUBMISSIONS.length;
+
+            const alreadyExists = currentDemoSubmissions.some(
+              (s) => s.title.toLowerCase() === currentT.title.toLowerCase() || s.igdbId === currentT.igdbId
+            );
+
+            if (!alreadyExists) {
+              template = currentT;
+              break;
+            }
+            attempts++;
+          }
+
+          // If all games are already in currentDemoSubmissions, fallback to next index to avoid getting stuck
+          if (!template) {
+            template = SIMULATED_FEED_SUBMISSIONS[nextSimulatedIndex];
+            nextSimulatedIndex = (nextSimulatedIndex + 1) % SIMULATED_FEED_SUBMISSIONS.length;
+          }
+
+          const newSub = {
+            ...template,
+            id: `sim-sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            createdAt: new Date().toISOString()
+          };
+
+          const updated = [newSub, ...currentDemoSubmissions];
+          const capped = updated.slice(0, 60);
+          saveLocalSubmissions(capped);
+
+          // Broadcast simulated addition to other tabs
+          demoChannel?.postMessage({
+            type: 'NEW_SIMULATED_SUBMISSION',
+            submission: newSub,
+            nextIndex: nextSimulatedIndex
+          });
+
+          // Trigger callbacks in this tab
+          triggerActiveCallbacks();
+        }
+
+        // Leader schedules next execution in 3-6 seconds
+        nextDelay = 3000 + Math.random() * 3000;
+      }
+
+      // Schedule next check/tick
+      scheduleNext(nextDelay);
+    }, delayMs);
+  };
+
+  // Start by scheduling the first check in 1 second (1000ms)
+  scheduleNext(1000);
+};
 
 // Check if live Firebase is active and configured
 export function isFirebaseConfigured() {
@@ -30,6 +185,7 @@ function getLocalSubmissions() {
 }
 
 function saveLocalSubmissions(subs) {
+  currentDemoSubmissions = subs;
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(subs));
@@ -76,7 +232,8 @@ export function subscribeSubmissions(callback, limitCount = 20) {
         },
         (err) => {
           console.warn('Firestore snapshot listener failed, falling back to local storage', err);
-          callback({ data: getLocalSubmissions(), error: null });
+          ensureDemoSubmissionsInitialized();
+          callback({ data: currentDemoSubmissions.slice(0, limitCount), error: null });
         }
       );
       return unsubscribe;
@@ -86,9 +243,24 @@ export function subscribeSubmissions(callback, limitCount = 20) {
   }
 
   // Fallback / Standalone Demo Mode
-  const demoData = getLocalSubmissions();
-  callback({ data: demoData, error: null });
-  return () => {};
+  ensureDemoSubmissionsInitialized();
+  callback({ data: currentDemoSubmissions.slice(0, limitCount), error: null });
+
+  const listenerRecord = { callback, limitCount };
+  activeCallbacks.add(listenerRecord);
+
+  // Start global timer loop
+  startGlobalSimulation();
+
+  return () => {
+    activeCallbacks.delete(listenerRecord);
+    if (activeCallbacks.size === 0) {
+      if (globalTimerId) {
+        clearTimeout(globalTimerId);
+        globalTimerId = null;
+      }
+    }
+  };
 }
 
 export async function fetchSubmissions(limitCount = 120) {
@@ -122,7 +294,8 @@ export async function fetchSubmissions(limitCount = 120) {
       console.warn('Firebase fetchSubmissions failed, returning demo data', err);
     }
   }
-  return getLocalSubmissions();
+  ensureDemoSubmissionsInitialized();
+  return currentDemoSubmissions.slice(0, limitCount);
 }
 
 export async function getSubmissionById(id) {
@@ -136,8 +309,8 @@ export async function getSubmissionById(id) {
       console.warn('Firebase getSubmissionById failed', err);
     }
   }
-  const local = getLocalSubmissions();
-  return local.find((s) => s.id === id) || null;
+  ensureDemoSubmissionsInitialized();
+  return currentDemoSubmissions.find((s) => s.id === id) || null;
 }
 
 export async function saveSubmission(submissionData, user, editId = null) {
@@ -166,10 +339,16 @@ export async function saveSubmission(submissionData, user, editId = null) {
   }
 
   // Demo / LocalStorage behavior
-  const current = getLocalSubmissions();
+  ensureDemoSubmissionsInitialized();
+  const current = currentDemoSubmissions;
   if (editId) {
     const updated = current.map((item) => (item.id === editId ? { ...item, ...payload } : item));
     saveLocalSubmissions(updated);
+    // Broadcast manual edit
+    demoChannel?.postMessage({
+      type: 'SAVE_SUBMISSION',
+      submission: { ...payload, id: editId }
+    });
     return editId;
   } else {
     const newId = `demo-sub-${Date.now()}`;
@@ -177,6 +356,11 @@ export async function saveSubmission(submissionData, user, editId = null) {
     payload.createdAt = new Date().toISOString();
     const updated = [payload, ...current];
     saveLocalSubmissions(updated);
+    // Broadcast manual addition
+    demoChannel?.postMessage({
+      type: 'SAVE_SUBMISSION',
+      submission: payload
+    });
     return newId;
   }
 }
@@ -189,9 +373,15 @@ export async function deleteSubmission(id, userId, userObj) {
       console.warn('Firebase deleteSubmission failed', err);
     }
   }
-  const current = getLocalSubmissions();
+  ensureDemoSubmissionsInitialized();
+  const current = currentDemoSubmissions;
   const filtered = current.filter((item) => item.id !== id);
   saveLocalSubmissions(filtered);
+  // Broadcast deletion
+  demoChannel?.postMessage({
+    type: 'DELETE_SUBMISSION',
+    id: id
+  });
   return true;
 }
 
