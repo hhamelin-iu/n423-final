@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Image, Animated, Alert, Platform } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { updateProfile } from "firebase/auth";
@@ -11,10 +12,12 @@ import { useDevice } from "../app/device-context";
 import { useAuth } from "../src/auth/AuthContext";
 import { auth, db } from "../src/firebase/firebaseConfig";
 import { isFirebaseConfigured } from "../src/services/dataService";
+import { useTheme } from "../styles/theme";
 
 export default function WebTopNav() {
   const { isDesktopWeb } = useDevice();
   const { user, signOut, isDemoMode, signInAsDemo } = useAuth();
+  const { mode, toggleTheme, colors, isDark } = useTheme();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const rotateAnim = useMemo(() => new Animated.Value(0), []);
@@ -38,7 +41,9 @@ export default function WebTopNav() {
     Alert.alert(titleMsg, message);
   };
 
-  useEffect(() => { if (!user) setOpen(false); }, [user]);
+  useEffect(() => {
+    if (!user) setOpen(false);
+  }, [user]);
 
   useEffect(() => {
     const loadProfilePhoto = async () => {
@@ -71,7 +76,7 @@ export default function WebTopNav() {
     Animated.timing(rotateAnim, {
       toValue: next ? 1 : 0,
       duration: 160,
-      useNativeDriver: Platform.OS !== 'web',
+      useNativeDriver: Platform.OS !== "web",
     }).start();
   };
 
@@ -143,6 +148,233 @@ export default function WebTopNav() {
     outputRange: ["0deg", "180deg"],
   });
 
+  const styles = StyleSheet.create({
+    outerContainer: {
+      width: "100%",
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 4,
+      zIndex: 1000,
+    },
+    innerContainer: {
+      width: "100%",
+      maxWidth: 1320,
+      marginHorizontal: "auto",
+      paddingHorizontal: 24,
+      height: 72,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    brandWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    brandLink: {
+      textDecorationLine: "none",
+      alignSelf: "center",
+    },
+    brandText: {
+      fontFamily: "LexendZetta_400Regular",
+      fontSize: 22,
+      fontWeight: "900",
+      color: colors.primary,
+      letterSpacing: -0.5,
+      textAlign: "left",
+    },
+    topNavDemoPill: {
+      backgroundColor: colors.badgeBg,
+      borderWidth: 1,
+      borderColor: colors.badgeBorder,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 12,
+    },
+    topNavDemoPillText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.badgeText,
+      letterSpacing: 0.8,
+    },
+    rightCluster: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 16,
+    },
+    navLink: {
+      textDecorationLine: "none",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    navLinkText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textMuted,
+    },
+    themeToggleBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      justifyContent: "center",
+      alignItems: "center",
+      cursor: "pointer",
+    },
+    submitLinkBtn: {
+      borderRadius: 20,
+      overflow: "hidden",
+    },
+    submitGradient: {
+      paddingHorizontal: 18,
+      paddingVertical: 9,
+      borderRadius: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    submitText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#FFFFFF",
+    },
+    profileDropdownWrap: {
+      position: "relative",
+    },
+    profileButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    profileButtonHover: {
+      borderColor: colors.primary,
+    },
+    avatarWrap: {
+      position: "relative",
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      overflow: "hidden",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    avatarImage: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+    },
+    avatarOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    usernameText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.text,
+      maxWidth: 120,
+    },
+    dropdownMenu: {
+      position: "absolute",
+      top: 50,
+      right: 0,
+      width: 240,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 10,
+      paddingVertical: 8,
+      zIndex: 2000,
+    },
+    dropdownHeader: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    dropdownHeaderText: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    dropdownHeaderName: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.text,
+      marginTop: 2,
+    },
+    demoTag: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.badgeText,
+      backgroundColor: colors.badgeBg,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      alignSelf: "flex-start",
+      marginTop: 4,
+    },
+    dropdownHeaderSub: {
+      fontSize: 11,
+      color: colors.primary,
+      marginTop: 4,
+    },
+    dropdownDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 4,
+    },
+    dropdownItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    dropdownItemText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.text,
+    },
+    dropdownItemDanger: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    dropdownItemDangerText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#EF4444",
+    },
+    loginBtn: {
+      borderRadius: 20,
+      overflow: "hidden",
+    },
+  });
+
   return (
     <View style={styles.outerContainer}>
       <View style={styles.innerContainer}>
@@ -167,9 +399,34 @@ export default function WebTopNav() {
           <Link href="/search" style={styles.navLink}>
             <Text style={styles.navLinkText}>Search</Text>
           </Link>
-          <Link href="/submit" style={styles.submitLink}>
-            <Text style={styles.submitText}>Submit</Text>
+
+          <Link href="/submit" style={styles.submitLinkBtn}>
+            <LinearGradient
+              colors={[colors.gradientMid, colors.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.submitGradient}
+            >
+              <Ionicons name="add-circle" size={16} color="#FFFFFF" />
+              <Text style={styles.submitText}>Submit</Text>
+            </LinearGradient>
           </Link>
+
+          {/* Theme Toggle Button */}
+          <Pressable
+            onPress={toggleTheme}
+            style={({ hovered }) => [
+              styles.themeToggleBtn,
+              hovered && { borderColor: colors.primary },
+            ]}
+            accessibilityLabel="Toggle Theme"
+          >
+            <Ionicons
+              name={isDark ? "sunny" : "moon"}
+              size={19}
+              color={isDark ? "#FBBF24" : colors.primary}
+            />
+          </Pressable>
 
           {user ? (
             <View style={styles.profileDropdownWrap}>
@@ -189,7 +446,7 @@ export default function WebTopNav() {
                   {photo ? (
                     <Image source={{ uri: photo }} style={styles.avatarImage} />
                   ) : (
-                    <Ionicons name="person-circle" size={36} color="#4F46E5" />
+                    <Ionicons name="person-circle" size={34} color={colors.primary} />
                   )}
                   {profileHovering && (
                     <View style={styles.avatarOverlay}>
@@ -201,7 +458,7 @@ export default function WebTopNav() {
                   {username}
                 </Text>
                 <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-                  <Ionicons name="chevron-down" size={18} color="#4F46E5" />
+                  <Ionicons name="chevron-down" size={16} color={colors.primary} />
                 </Animated.View>
               </Pressable>
 
@@ -211,20 +468,32 @@ export default function WebTopNav() {
                     <Text style={styles.dropdownHeaderText}>Signed in as</Text>
                     <Text style={styles.dropdownHeaderName}>{username}</Text>
                     {isDemoMode && <Text style={styles.demoTag}>Demo Mode</Text>}
-                    <Text style={styles.dropdownHeaderSub}>Click avatar or here to change photo</Text>
+                    <Text style={styles.dropdownHeaderSub}>Click avatar to change photo</Text>
                   </Pressable>
                   <View style={styles.dropdownDivider} />
-                  <Pressable style={styles.dropdownItem} onPress={() => { setOpen(false); router.push("/search"); }}>
-                    <Ionicons name="search-outline" size={18} color="#374151" />
+                  <Pressable
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setOpen(false);
+                      router.push("/search");
+                    }}
+                  >
+                    <Ionicons name="search-outline" size={18} color={colors.textMuted} />
                     <Text style={styles.dropdownItemText}>Browse Completions</Text>
                   </Pressable>
-                  <Pressable style={styles.dropdownItem} onPress={() => { setOpen(false); router.push("/submit"); }}>
-                    <Ionicons name="add-circle-outline" size={18} color="#374151" />
+                  <Pressable
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setOpen(false);
+                      router.push("/submit");
+                    }}
+                  >
+                    <Ionicons name="add-circle-outline" size={18} color={colors.textMuted} />
                     <Text style={styles.dropdownItemText}>Submit New Game</Text>
                   </Pressable>
                   <View style={styles.dropdownDivider} />
                   <Pressable style={styles.dropdownItemDanger} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={18} color="#DC2626" />
+                    <Ionicons name="log-out-outline" size={18} color="#EF4444" />
                     <Text style={styles.dropdownItemDangerText}>Log Out</Text>
                   </Pressable>
                 </View>
@@ -232,7 +501,14 @@ export default function WebTopNav() {
             </View>
           ) : (
             <Pressable style={styles.loginBtn} onPress={() => router.push("/login")}>
-              <Text style={styles.loginBtnText}>Log In</Text>
+              <LinearGradient
+                colors={[colors.primaryDark, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.submitGradient}
+              >
+                <Text style={styles.submitText}>Log In</Text>
+              </LinearGradient>
             </Pressable>
           )}
         </View>
@@ -240,218 +516,3 @@ export default function WebTopNav() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  outerContainer: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 1000,
-  },
-  innerContainer: {
-    width: "100%",
-    paddingHorizontal: 24,
-    height: 70,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  brandWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  brandLink: {
-    textDecorationLine: "none",
-    alignSelf: "center",
-  },
-  topNavDemoPill: {
-    backgroundColor: "rgba(107, 114, 128, 0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(107, 114, 128, 0.22)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  topNavDemoPillText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6B7280",
-    letterSpacing: 0.8,
-  },
-  brandText: {
-    fontFamily: "LexendZetta_400Regular",
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#4F46E5",
-    letterSpacing: -0.5,
-    textAlign: "left",
-  },
-  rightCluster: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  navLink: {
-    textDecorationLine: "none",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  navLinkText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  submitLink: {
-    textDecorationLine: "none",
-    backgroundColor: "#EEF2FF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#C7D2FE",
-  },
-  submitText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#4338CA",
-  },
-  profileDropdownWrap: {
-    position: "relative",
-  },
-  profileButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 24,
-    backgroundColor: "#F3F4F6",
-  },
-  profileButtonHover: {
-    backgroundColor: "#E5E7EB",
-  },
-  avatarWrap: {
-    position: "relative",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  avatarOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  usernameText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1F2937",
-    maxWidth: 120,
-  },
-  dropdownMenu: {
-    position: "absolute",
-    top: 48,
-    right: 0,
-    width: 240,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
-    paddingVertical: 8,
-    zIndex: 2000,
-  },
-  dropdownHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  dropdownHeaderText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  dropdownHeaderName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginTop: 2,
-  },
-  demoTag: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4B5563",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: "flex-start",
-    marginTop: 4,
-  },
-  dropdownHeaderSub: {
-    fontSize: 11,
-    color: "#6366F1",
-    marginTop: 4,
-  },
-  dropdownDivider: {
-    height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 4,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  dropdownItemDanger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  dropdownItemDangerText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#DC2626",
-  },
-  loginBtn: {
-    backgroundColor: "#6366F1",
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 20,
-  },
-  loginBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-});

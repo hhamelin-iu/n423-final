@@ -7,225 +7,213 @@ import { auth, db } from '../src/firebase/firebaseConfig';
 import { useAuth } from '../src/auth/AuthContext';
 import { isFirebaseConfigured } from '../src/services/dataService';
 import { useTheme } from '../styles/theme';
-import Footer from "../components/Footer";
-import { useDevice } from "../app/device-context";
+import Footer from '../components/Footer';
+import { useDevice } from '../app/device-context';
 import AnimatedButton from '../components/AnimatedButton';
 
 export default function SignupScreen() {
-    const { isDesktopWeb } = useDevice();
-    const theme = useTheme();
-    const router = useRouter();
-    const { user, loading, signInAsDemo } = useAuth();
+  const { isDesktopWeb } = useDevice();
+  const { colors, styles: themeStyles } = useTheme();
+  const router = useRouter();
+  const { user, loading, signInAsDemo } = useAuth();
 
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const hasFirebase = isFirebaseConfigured();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const hasFirebase = isFirebaseConfigured();
 
-    useEffect(() => {
-        if (user) {
-            router.replace('/');
-        }
-    }, [user, router]);
+  useEffect(() => {
+    if (user) {
+      router.replace('/');
+    }
+  }, [user, router]);
 
-    const goToLogin = () => {
-        router.replace('/login');
-    };
+  const goToLogin = () => {
+    router.replace('/login');
+  };
 
-    const handleDemoSignup = () => {
-        const cleanName = username.trim() || 'Demo Player';
-        signInAsDemo({
-          displayName: cleanName,
-          username: cleanName.replace(/\s+/g, ''),
-          email: email.trim() || 'demo@loreboards.dev',
-        });
-        router.replace('/');
-    };
+  const handleDemoSignup = () => {
+    const cleanName = username.trim() || 'Demo Player';
+    signInAsDemo({
+      displayName: cleanName,
+      username: cleanName.replace(/\s+/g, ''),
+      email: email.trim() || 'demo@loreboards.dev',
+    });
+    router.replace('/');
+  };
 
-    const handleSignup = async () => {
-        if (submitting || loading) return;
-        setError('');
+  const handleSignup = async () => {
+    if (submitting || loading) return;
+    setError('');
 
-        if (!hasFirebase) {
-            handleDemoSignup();
-            return;
-        }
+    if (!hasFirebase) {
+      handleDemoSignup();
+      return;
+    }
 
-        if (!username.trim() || !email.trim() || !password) {
-            setError('Please enter a username, email, and password.');
-            return;
-        }
+    if (!username.trim() || !email.trim() || !password) {
+      setError('Please enter a username, email, and password.');
+      return;
+    }
 
-        try {
-            setSubmitting(true);
-            const cleanUsername = username.trim();
-            const usernameKey = cleanUsername.toLowerCase();
-            const cleanEmail = email.trim();
+    try {
+      setSubmitting(true);
+      const cleanUsername = username.trim();
+      const usernameKey = cleanUsername.toLowerCase();
+      const cleanEmail = email.trim();
 
-            const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-            await updateProfile(cred.user, { displayName: cleanUsername });
-            await setDoc(
-                doc(db, 'profiles', cred.user.uid),
-                { username: cleanUsername, email: cleanEmail },
-                { merge: true }
-            );
-            await setDoc(
-                doc(db, 'usernames', usernameKey),
-                { uid: cred.user.uid, email: cleanEmail, username: cleanUsername },
-                { merge: true }
-            );
-        } catch (e) {
-            setError(e.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      await updateProfile(cred.user, { displayName: cleanUsername });
+      await setDoc(
+        doc(db, 'profiles', cred.user.uid),
+        { username: cleanUsername, email: cleanEmail },
+        { merge: true }
+      );
+      await setDoc(
+        doc(db, 'usernames', usernameKey),
+        { uid: cred.user.uid, email: cleanEmail, username: cleanUsername },
+        { merge: true }
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    return (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <ScrollView contentContainerStyle={theme.scrollContainer} keyboardShouldPersistTaps="handled">
-                <View style={theme.mainContainer}>
-                    {isDesktopWeb && (
-                        <Text style={[theme.title, { textAlign: "center" }]}>Create your Account</Text>
-                    )}
-                    <View style={styles.formWrap}>
-                        <View style={styles.formFields}>
-                            <Text style={styles.label}>Username</Text>
-                            <TextInput
-                                value={username}
-                                onChangeText={setUsername}
-                                placeholder="Username"
-                                placeholderTextColor="rgba(0,0,0,0.5)"
-                                returnKeyType="next"
-                                onSubmitEditing={handleSignup}
-                                style={styles.input}
-                            />
-                            <Text style={styles.label}>Email</Text>
-                            <TextInput
-                                value={email}
-                                onChangeText={setEmail}
-                                placeholder="user@example.com"
-                                placeholderTextColor="rgba(0,0,0,0.5)"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                returnKeyType="next"
-                                onSubmitEditing={handleSignup}
-                                style={styles.input}
-                            />
-                            <Text style={styles.label}>Password</Text>
-                            <TextInput
-                                value={password}
-                                onChangeText={setPassword}
-                                placeholder="Password"
-                                placeholderTextColor="rgba(0,0,0,0.5)"
-                                secureTextEntry
-                                returnKeyType="go"
-                                onSubmitEditing={handleSignup}
-                                style={styles.input}
-                            />
-                            {!!error && <Text style={styles.error}>{error}</Text>}
-                            <Text style={styles.helperText}>
-                                Already have an account?{" "}
-                                <Text style={styles.link} onPress={goToLogin}>Log in</Text>
-                            </Text>
-
-                            <Pressable style={styles.demoButton} onPress={handleDemoSignup}>
-                                <Text style={styles.demoButtonText}>Quick Demo Access</Text>
-                            </Pressable>
-                        </View>
-                        <AnimatedButton
-                            title={submitting ? "Creating..." : "Create Account"}
-                            onPress={handleSignup}
-                            buttonStyle={{ backgroundColor: "#E5954E", borderColor: "#66380F", borderWidth: 2 }}
-                            textStyle={{ color: "#fff" }}
-                        />
-                    </View>
-                </View>
-                {isDesktopWeb && <Footer />}
-            </ScrollView>
-        </KeyboardAvoidingView>
-    );
-}
-
-const styles = StyleSheet.create({
+  const styles = StyleSheet.create({
     formWrap: {
-        width: "100%",
-        maxWidth: 600,
-        alignSelf: "center",
-        backgroundColor: "#F0F0F0",
-        borderWidth: 1.5,
-        borderColor: "#C5C5C5",
-        borderRadius: 21,
-        padding: 20,
-        minHeight: 620,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 6,
-        justifyContent: "space-between",
+      width: '100%',
+      maxWidth: 480,
+      alignSelf: 'center',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      padding: 28,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 4,
+      gap: 20,
     },
     formFields: {
-        gap: 16,
-    },
-    demoBanner: {
-        backgroundColor: "#FEF3C7",
-        borderColor: "#F59E0B",
-        borderWidth: 1.5,
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-    },
-    demoBannerTitle: {
-        fontWeight: "700",
-        fontSize: 16,
-        color: "#B45309",
-        marginBottom: 4,
-    },
-    demoBannerText: {
-        fontSize: 14,
-        color: "#4B5563",
-        lineHeight: 20,
+      gap: 14,
     },
     label: {
-        fontWeight: "700",
-        fontSize: 20,
+      fontWeight: '700',
+      fontSize: 15,
+      color: colors.text,
+      marginBottom: -4,
     },
     input: {
-        width: "100%",
-        padding: 12,
-        backgroundColor: "#FFF",
-        borderRadius: 12,
-        fontSize: 18,
-        borderWidth: 1,
-        borderColor: "#D0D0D0",
+      width: '100%',
+      padding: 12,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 12,
+      fontSize: 15,
+      borderWidth: 1,
+      borderColor: colors.border,
+      color: colors.text,
     },
     error: {
-        color: "#B00020",
-        fontWeight: "600",
-        marginTop: 6,
-        marginBottom: 2,
+      color: '#EF4444',
+      fontWeight: '600',
+      fontSize: 14,
+      marginTop: 2,
     },
     helperText: {
-        marginTop: 6,
-        fontSize: 14,
+      marginTop: 4,
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: 'center',
     },
     link: {
-        color: "#0066CC",
-        textDecorationLine: "underline",
+      color: colors.primary,
+      fontWeight: '700',
     },
     demoButton: {
-        backgroundColor: "#E5954E",
-        borderRadius: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        alignItems: "center",
-        marginTop: 6,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      marginTop: 6,
     },
     demoButtonText: {
-        color: "#FFFFFF",
-        fontWeight: "600",
-        fontSize: 16,
+      color: colors.text,
+      fontWeight: '700',
+      fontSize: 14,
     },
-});
+  });
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={themeStyles.scrollContainer} keyboardShouldPersistTaps="handled">
+        <View style={themeStyles.mainContainer}>
+          <Text style={[themeStyles.title, { textAlign: 'center' }]}>Create your Account</Text>
+          <View style={styles.formWrap}>
+            <View style={styles.formFields}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Username"
+                placeholderTextColor={colors.textLight}
+                returnKeyType="next"
+                onSubmitEditing={handleSignup}
+                style={styles.input}
+              />
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="user@example.com"
+                placeholderTextColor={colors.textLight}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                returnKeyType="next"
+                onSubmitEditing={handleSignup}
+                style={styles.input}
+              />
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor={colors.textLight}
+                secureTextEntry
+                returnKeyType="go"
+                onSubmitEditing={handleSignup}
+                style={styles.input}
+              />
+              {!!error && <Text style={styles.error}>{error}</Text>}
+
+              <Pressable style={styles.demoButton} onPress={handleDemoSignup}>
+                <Text style={styles.demoButtonText}>⚡ Quick Demo Access</Text>
+              </Pressable>
+            </View>
+
+            <AnimatedButton
+              title={submitting ? 'Creating...' : 'Create Account'}
+              onPress={handleSignup}
+            />
+
+            <Text style={styles.helperText}>
+              Already have an account?{' '}
+              <Text style={styles.link} onPress={goToLogin}>
+                Log in
+              </Text>
+            </Text>
+          </View>
+        </View>
+        {isDesktopWeb && <Footer />}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}

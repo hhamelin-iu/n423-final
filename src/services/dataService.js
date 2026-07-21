@@ -3,7 +3,7 @@ import { db } from '../firebase/firebaseConfig';
 import { DEMO_USER, INITIAL_DEMO_SUBMISSIONS } from './demoData';
 import { MOCK_GAMES, MOCK_PLATFORMS } from './mockGames';
 
-const STORAGE_KEY_SUBMISSIONS = 'loreboards_demo_submissions_v7';
+const STORAGE_KEY_SUBMISSIONS = 'loreboards_demo_submissions_v9';
 const STORAGE_KEY_USER_PROFILE = 'loreboards_demo_user_profile';
 
 // Check if live Firebase is active and configured

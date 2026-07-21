@@ -9,6 +9,8 @@ import WebTopNav from '../components/WebTopNav';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { DeviceProvider, useDevice } from './device-context';
 
+import { ThemeProvider, useTheme } from '../styles/theme';
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     LexendZetta_400Regular,
@@ -26,7 +28,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <DeviceProvider>
-        <AppContent />
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </DeviceProvider>
     </AuthProvider>
   );
@@ -34,16 +38,22 @@ export default function RootLayout() {
 
 function AppContent() {
   const { isDesktopWeb } = useDevice();
+  const { colors } = useTheme();
 
   return (
-    <View style={{ flex: 1, fontFamily: 'NotoSans_400Regular' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background, fontFamily: 'NotoSans_400Regular' }}>
       {isDesktopWeb && <WebTopNav />}
       <Stack
         screenOptions={{
           headerShown: !isDesktopWeb,
+          headerStyle: {
+            backgroundColor: colors.surface,
+          },
+          headerTintColor: colors.text,
           headerTitleStyle: {
-            fontFamily: "LexendZetta_400Regular",
-         },
+            fontFamily: 'LexendZetta_400Regular',
+            color: colors.text,
+          },
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

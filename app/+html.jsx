@@ -1,6 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 
-export default function Root({ children }: { children: React.ReactNode }) {
+export default function Root({ children }) {
   return (
     <html lang="en">
       <head>
@@ -11,9 +11,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* High-speed Google Web Fonts CDN */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Lexend+Zetta:wght@400;600;700;900&family=Noto+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Lexend+Zetta:wght@400;600;700;900&family=Noto+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+          rel="stylesheet"
+        />
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           @font-face {
             font-family: 'LexendZetta_400Regular';
             src: local('Lexend Zetta'), local('LexendZetta-Regular');
@@ -56,7 +61,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
           html, body {
             font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           }
-        ` }} />
+        `,
+          }}
+        />
 
         <ScrollViewStyleReset />
       </head>

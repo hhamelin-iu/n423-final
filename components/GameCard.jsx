@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useDevice } from "../app/device-context";
 import { useAuth } from '../src/auth/AuthContext';
+import { useTheme } from '../styles/theme';
 
 export default function GameCard({
     submissionId,
@@ -25,14 +26,15 @@ export default function GameCard({
     const router = useRouter();
     const { isDesktopWeb } = useDevice();
     const { user } = useAuth();
+    const { colors, isDark } = useTheme();
 
     const infoTextNumberOfLines = 3;
     const infoTextLineHeight = isDesktopWeb ? 18 : 16;
     const infoTextMaxHeight = infoTextLineHeight * infoTextNumberOfLines;
     const expandedNotesMaxHeight = isDesktopWeb ? 230 : 190;
-    const reservedNotesSpace = Math.max(expandedNotesMaxHeight - infoTextMaxHeight, 0) + 12;
+    const reservedNotesSpace = isDesktopWeb ? 16 : 8;
     const statusLabel = completionType === 'progress' ? 'Progress' : 'High Score';
-    const statusColor = completionType === 'progress' ? '#E5954E' : '#60E54E';
+    const statusColor = completionType === 'progress' ? colors.gradientMid : '#10B981';
     const [isNotesHovered, setIsNotesHovered] = useState(false);
     const [isCardHovered, setIsCardHovered] = useState(false);
     const [notesOpen, setNotesOpen] = useState(false);
@@ -129,41 +131,46 @@ export default function GameCard({
 
     const styles = StyleSheet.create({
         cardSlot: {
-            width: isDesktopWeb ? 240 : 200,
-            paddingBottom: reservedNotesSpace,
+            width: isDesktopWeb ? 280 : 220,
             backgroundColor: 'transparent',
         },
         container: {
             width: '100%',
-            backgroundColor: '#f5f7faff',
-            paddingTop: 10,
+            backgroundColor: colors.card,
+            paddingTop: 8,
             paddingBottom: 10,
             borderRadius: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 3,
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
             elevation: 3,
             overflow: 'visible',
             position: 'relative',
         },
         titleWrap: {
-            marginBottom: 6,
+            height: isDesktopWeb ? 48 : 42,
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingHorizontal: 10,
+            marginBottom: 4,
+            paddingHorizontal: 8,
         },
         title: {
-            fontSize: isDesktopWeb ? 17 : 15,
+            fontSize: isDesktopWeb ? 15 : 13,
+            lineHeight: isDesktopWeb ? 20 : 17,
             fontWeight: '800',
             textAlign: 'center',
-            color: '#121212',
+            color: colors.text,
         },
         year: {
-            fontSize: isDesktopWeb ? 13 : 11,
-            color: '#666',
+            fontSize: isDesktopWeb ? 12 : 11,
+            color: colors.textMuted,
+            marginTop: 2,
         },
         yearHover: {
-            color: '#001ecf',
+            color: colors.primary,
         },
         innerCard: {
             marginHorizontal: 8,
@@ -171,19 +178,23 @@ export default function GameCard({
             zIndex: 10,
         },
         imageWrap: {
-            aspectRatio: 3 / 4,
-            backgroundColor: '#1D1D1D',
+            height: isDesktopWeb ? 280 : 220,
+            width: '100%',
+            backgroundColor: colors.surfaceSecondary,
             borderRadius: 12,
             overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: colors.border,
         },
         imagePlaceholder: {
-            backgroundColor: '#EDEDED',
-            borderColor: '#D0D0D0',
+            backgroundColor: colors.surfaceSecondary,
+            borderColor: colors.border,
             borderWidth: 1,
         },
         image: {
             width: '100%',
             height: '100%',
+            resizeMode: 'cover',
         },
         imagePlaceholderInner: {
             flex: 1,
@@ -191,16 +202,18 @@ export default function GameCard({
             justifyContent: 'center',
         },
         imagePlaceholderIcon: {
-            opacity: 0.6,
+            opacity: 0.5,
         },
         info: {
             marginTop: 6,
-            backgroundColor: '#ececec',
+            backgroundColor: colors.surfaceSecondary,
             borderRadius: 12,
             overflow: 'visible',
             position: 'relative',
             zIndex: 20,
             elevation: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
         },
         infoBar: {
             paddingHorizontal: 8,
@@ -209,44 +222,58 @@ export default function GameCard({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
-            backgroundColor: '#ffffffeb',
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 11,
+            borderTopRightRadius: 11,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
         },
-        statusText: {
-            fontSize: isDesktopWeb ? 13 : 11,
-            color: '#1D1D1D',
+        statusBlock: {
+            flexDirection: 'column',
+            justifyContent: 'center',
+        },
+        statusLabelText: {
+            fontSize: isDesktopWeb ? 11 : 10,
+            fontWeight: '800',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+        },
+        completionValueText: {
+            fontSize: isDesktopWeb ? 13 : 12,
+            fontWeight: '700',
+            color: colors.text,
+            marginTop: 1,
         },
         userProfile: {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
             paddingHorizontal: 8,
-            paddingVertical: 6,
+            paddingVertical: 4,
             borderRadius: 999,
-            transitionProperty: 'background-color, transform, box-shadow',
-            transitionDuration: '140ms',
-            transitionTimingFunction: 'ease-out',
+            backgroundColor: colors.surfaceSecondary,
         },
         userPic: {
-            width: isDesktopWeb ? 26 : 22,
-            height: isDesktopWeb ? 26 : 22,
-            borderRadius: 100,
-            backgroundColor: '#d9d9d9',
+            width: isDesktopWeb ? 24 : 20,
+            height: isDesktopWeb ? 24 : 20,
+            borderRadius: 12,
+            backgroundColor: colors.border,
         },
         username: {
             fontSize: isDesktopWeb ? 12 : 11,
             fontWeight: '700',
-            color: '#0077CC',
+            color: colors.primary,
         },
         infoTextContainer: {
             position: 'relative',
-            minHeight: infoTextMaxHeight + 16,
+            minHeight: isDesktopWeb ? 84 : 74,
             zIndex: 50,
+            justifyContent: 'flex-start',
         },
         infoText: {
-            padding: 8,
-            lineHeight: infoTextLineHeight,
+            lineHeight: isDesktopWeb ? 19 : 17,
             fontSize: isDesktopWeb ? 13 : 12,
-            color: '#4b4b4b',
+            color: colors.textMuted,
         },
         infoTextWrapper: {
             overflow: 'hidden',
@@ -255,17 +282,18 @@ export default function GameCard({
             right: 0,
             top: 0,
             zIndex: 900,
-            backgroundColor: '#ececec',
+            backgroundColor: colors.surfaceSecondary,
             paddingBottom: 8,
-            minHeight: infoTextMaxHeight + 16,
+            minHeight: isDesktopWeb ? 84 : 74,
             borderBottomLeftRadius: 12,
             borderBottomRightRadius: 12,
             elevation: 0,
+            justifyContent: 'flex-start',
         },
         infoTextScroll: {
-            paddingHorizontal: 8,
+            paddingHorizontal: 10,
             paddingTop: 8,
-            paddingBottom: 4,
+            paddingBottom: 8,
         },
         hiddenMeasure: {
             position: 'absolute',
@@ -280,7 +308,7 @@ export default function GameCard({
             flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
-            marginTop: 4,
+            marginTop: 6,
             paddingHorizontal: 10,
             justifyContent: 'center',
             position: 'relative',
@@ -288,39 +316,35 @@ export default function GameCard({
         },
         badge: {
             paddingHorizontal: 8,
-            paddingVertical: 4,
+            paddingVertical: 3,
             borderRadius: 999,
-            backgroundColor: '#eef2ff',
+            backgroundColor: colors.badgeBg,
+            borderWidth: 1,
+            borderColor: colors.badgeBorder,
         },
         badgeText: {
             fontSize: 10,
             fontWeight: '700',
-            color: '#1f4b99',
+            color: colors.badgeText,
         },
         cardHover: {
-            transform: [{ translateY: -2 }],
-            shadowOpacity: 0.16,
-            zIndex: 1200,
-            elevation: 14,
-            shadowRadius: 6,
+            borderColor: colors.primary,
+            transform: [{ translateY: -3 }],
+            shadowOpacity: 0.18,
+            shadowRadius: 10,
         },
         titleHover: {
-            color: '#001ecf',
+            color: colors.primary,
             textDecorationLine: 'underline',
         },
         imageHover: {
-            opacity: 0.95,
+            opacity: 0.92,
         },
         userProfileHover: {
-            backgroundColor: '#e7f0ff',
-            transform: [{ translateY: -1 }],
-            boxShadow: '0px 2px 6px rgba(0,0,0,0.08)',
-            opacity: 0.9,
+            backgroundColor: colors.border,
         },
         userProfileActive: {
-            backgroundColor: '#dce8ff',
-            transform: [{ translateY: 0 }],
-            boxShadow: '0px 1px 3px rgba(0,0,0,0.08)',
+            opacity: 0.8,
         },
         actionRow: {
             flexDirection: 'row',
@@ -333,31 +357,29 @@ export default function GameCard({
         },
         actionBtn: {
             paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 10,
-            backgroundColor: '#f2f6ff',
+            paddingVertical: 5,
+            borderRadius: 8,
+            backgroundColor: colors.surfaceSecondary,
             borderWidth: 1,
-            borderColor: '#ced8ff',
+            borderColor: colors.border,
         },
         actionBtnHover: {
-            backgroundColor: '#e5edff',
-            transform: [{ translateY: -1 }],
+            borderColor: colors.primary,
         },
         actionBtnActive: {
-            backgroundColor: '#d7e4ff',
-            transform: [{ translateY: 0 }],
+            opacity: 0.8,
         },
         actionText: {
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: '800',
-            color: '#1f2c4f',
+            color: colors.text,
         },
         actionDanger: {
-            backgroundColor: '#fff3f3',
-            borderColor: '#f5c2c7',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
         },
         actionDangerText: {
-            color: '#b00020',
+            color: '#EF4444',
         },
     });
 
@@ -457,6 +479,7 @@ export default function GameCard({
                                     (hovered || pressed) && styles.titleHover,
                                 ]}
                                 numberOfLines={2}
+                                ellipsizeMode="tail"
                             >
                                 {title || 'Untitled Game'}
                             </Text>
@@ -505,10 +528,16 @@ export default function GameCard({
                     </Pressable>
                     <View style={styles.info}>
                         <View style={styles.infoBar}>
-                            <Text style={styles.statusText}>
-                                <Text style={{ color: statusColor }}>{statusLabel}</Text>
-                                {completionDisplay ? ` • ${completionDisplay}` : ''}
-                            </Text>
+                            <View style={styles.statusBlock}>
+                                <Text style={[styles.statusLabelText, { color: statusColor }]}>
+                                    {statusLabel}
+                                </Text>
+                                {!!completionDisplay && (
+                                    <Text style={styles.completionValueText}>
+                                        {completionDisplay}
+                                    </Text>
+                                )}
+                            </View>
                             <Pressable
                                 onPress={(event) => {
                                     event.stopPropagation();
