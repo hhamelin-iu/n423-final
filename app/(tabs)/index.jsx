@@ -1,22 +1,21 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, LayoutAnimation, Platform, UIManager, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, LayoutAnimation, Platform, UIManager, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
-import { collection, getDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 import { useTheme } from '../../styles/theme';
 import Footer from "../../components/Footer";
 import GameCard from "../../components/GameCard";
 import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
-import { db } from '../../src/firebase/firebaseConfig';
+import { subscribeSubmissions, deleteSubmission } from '../../src/services/dataService';
 
 export default function HomeScreen() {
     const router = useRouter();
     const { isDesktopWeb } = useDevice();
     const { height } = useWindowDimensions();
     const theme = useTheme();
-    const { user } = useAuth();
+    const { user, isDemoMode } = useAuth();
     const [submissions, setSubmissions] = useState([]);
     const [loadingSubs, setLoadingSubs] = useState(true);
     const [subsError, setSubsError] = useState('');
@@ -69,6 +68,22 @@ export default function HomeScreen() {
             zIndex: 2000,
             elevation: 20,
         },
+        demoBadge: {
+            backgroundColor: '#EEF2FF',
+            borderColor: '#6366F1',
+            borderWidth: 1,
+            borderRadius: 8,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            alignSelf: 'center',
+            marginTop: 8,
+            marginBottom: 4,
+        },
+        demoBadgeText: {
+            color: '#4338CA',
+            fontWeight: '600',
+            fontSize: 13,
+        }
     });
 
     useEffect(() => {
@@ -79,65 +94,33 @@ export default function HomeScreen() {
     }, []);
 
     useEffect(() => {
-        let cancelled = false;
-        const q = query(collection(db, 'submissions'), orderBy('createdAt', 'desc'), limit(15));
         setLoadingSubs(true);
-        const unsubscribe = onSnapshot(
-            q,
-            async (snap) => {
-                if (cancelled) return;
-                const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                const profilePromises = raw.map(async (s) => {
-                    if (!s.userId) return { userPhoto: null, displayName: null, username: null };
-                    try {
-                        const profileSnap = await getDoc(doc(db, 'profiles', s.userId));
-                        const pdata = profileSnap.data();
-                        return {
-                            userPhoto: pdata?.photoData || null,
-                            displayName: pdata?.displayName || pdata?.name || null,
-                            username: pdata?.username || null,
-                        };
-                    } catch {
-                        return { userPhoto: null, displayName: null, username: null };
-                    }
-                });
-                const profiles = await Promise.all(profilePromises);
-                if (cancelled) return;
-                const merged = raw.map((s, idx) => ({
-                    ...s,
-                    userPhoto: profiles[idx]?.userPhoto || null,
-                    userDisplayName: profiles[idx]?.displayName || profiles[idx]?.username || null,
-                    userUsername: profiles[idx]?.username || null,
-                }));
+        const unsubscribe = subscribeSubmissions(({ data, error }) => {
+            if (error) {
+                setSubsError(error);
+            } else {
                 const layoutAnim = LayoutAnimation.create(
                     320,
                     LayoutAnimation.Types.easeInEaseOut,
                     LayoutAnimation.Properties.scaleXY
                 );
                 LayoutAnimation.configureNext(layoutAnim);
-                setSubmissions(merged);
+                setSubmissions(data || []);
                 setSubsError('');
-                setLoadingSubs(false);
-            },
-            (err) => {
-                console.warn('Failed to load submissions', err);
-                if (!cancelled) {
-                    setSubsError(!user ? 'Sign in to view latest submissions.' : 'Could not load submissions.');
-                    setSubmissions([]);
-                    setLoadingSubs(false);
-                }
             }
-        );
-        return () => { cancelled = true; unsubscribe(); };
+            setLoadingSubs(false);
+        }, 15);
+
+        return () => unsubscribe();
     }, [user]);
 
     const handleDeleteSubmission = async (id, ownerId) => {
-        if (!user || user.uid !== ownerId) {
+        if (!user || (user.uid !== ownerId && !user.isDemo)) {
             setSubsError('You can only delete your own submissions.');
             return;
         }
         try {
-            await deleteDoc(doc(db, 'submissions', id));
+            await deleteSubmission(id, ownerId, user);
             setSubmissions((prev) => prev.filter((s) => s.id !== id));
             setSubsError('');
         } catch (err) {
@@ -145,6 +128,7 @@ export default function HomeScreen() {
             setSubsError('Could not delete this submission.');
         }
     };
+
     const AnimatedSubmissionCard = ({ submission, onDelete, seenIds }) => {
         const initialValue = seenIds.current.has(submission.id) ? 1 : 0;
         const anim = useRef(new Animated.Value(initialValue)).current;
@@ -157,7 +141,7 @@ export default function HomeScreen() {
                     toValue: 1,
                     friction: 7,
                     tension: 90,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }).start();
             } else {
                 anim.setValue(1);
@@ -217,13 +201,14 @@ export default function HomeScreen() {
                         theme.title,
                         {
                             marginTop: compactHeight ? 16 : 30,
-                            marginBottom: compactHeight ? 12 : theme.title.marginBottom,
+                            marginBottom: compactHeight ? 8 : 12,
                             fontSize: heroTitleSize,
                             textAlign: "center",
                         }
                     ]}>
                         Welcome to LOREBoards!
                     </Text>
+
                     <Text style={[
                         theme.subtitle,
                         {
@@ -251,7 +236,7 @@ export default function HomeScreen() {
                             </>
                         ) : (
                             <>
-                                To add entries of your own, you will need{" "}
+                                To add entries of your own, you can{" "}
                                 <Pressable onPress={() => router.push("/login")}>
                                     {({ hovered, pressed }) => (
                                         <Text
@@ -260,7 +245,7 @@ export default function HomeScreen() {
                                                 (hovered || pressed) && styles.welcomeTextLinkHover,
                                             ]}
                                         >
-                                            Log In
+                                            Explore as Demo User
                                         </Text>
                                     )}
                                 </Pressable>{" "}
@@ -301,11 +286,11 @@ export default function HomeScreen() {
                         {
                             marginLeft: isDesktopWeb ? "5%" : 0,
                             width: isDesktopWeb ? '95%' : '100%',
-            minHeight: isDesktopWeb ? 760 : 640,
-            }
-        ]}
-    >
-                    {!!subsError && !user && (
+                            minHeight: isDesktopWeb ? 760 : 640,
+                        }
+                    ]}
+                >
+                    {!!subsError && (
                         <Text style={{ color: '#B00020', marginBottom: 6 }}>{subsError}</Text>
                     )}
                     <ScrollView
@@ -337,20 +322,20 @@ export default function HomeScreen() {
                             />
                         ))}
                     </ScrollView>
-            <LinearGradient
-                pointerEvents="none"
-                colors={[
-                    'rgba(255,255,255,0)',
-                    'rgba(255,255,255,0.4)',
-                    'rgba(255,255,255,0.75)',
-                    'rgba(255,255,255,0.9)',
-                ]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.fadeRight}
-            />
-        </View>
-    </View>
+                    <LinearGradient
+                        pointerEvents="none"
+                        colors={[
+                            'rgba(255,255,255,0)',
+                            'rgba(255,255,255,0.4)',
+                            'rgba(255,255,255,0.75)',
+                            'rgba(255,255,255,0.9)',
+                        ]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.fadeRight}
+                    />
+                </View>
+            </View>
             <Footer />
         </ScrollView>
     );

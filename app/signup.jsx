@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/firebaseConfig';
 import { useAuth } from '../src/auth/AuthContext';
+import { isFirebaseConfigured } from '../src/services/dataService';
 import { useTheme } from '../styles/theme';
 import Footer from "../components/Footer";
 import { useDevice } from "../app/device-context";
@@ -14,13 +15,14 @@ export default function SignupScreen() {
     const { isDesktopWeb } = useDevice();
     const theme = useTheme();
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { user, loading, signInAsDemo } = useAuth();
 
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const hasFirebase = isFirebaseConfigured();
 
     useEffect(() => {
         if (user) {
@@ -32,9 +34,24 @@ export default function SignupScreen() {
         router.replace('/login');
     };
 
+    const handleDemoSignup = () => {
+        const cleanName = username.trim() || 'Demo Player';
+        signInAsDemo({
+          displayName: cleanName,
+          username: cleanName.replace(/\s+/g, ''),
+          email: email.trim() || 'demo@loreboards.dev',
+        });
+        router.replace('/');
+    };
+
     const handleSignup = async () => {
         if (submitting || loading) return;
         setError('');
+
+        if (!hasFirebase) {
+            handleDemoSignup();
+            return;
+        }
 
         if (!username.trim() || !email.trim() || !password) {
             setError('Please enter a username, email, and password.');
@@ -78,44 +95,48 @@ export default function SignupScreen() {
                             <Text style={styles.label}>Username</Text>
                             <TextInput
                                 value={username}
-                            onChangeText={setUsername}
-                            placeholder="Username"
-                            placeholderTextColor="rgba(0,0,0,0.5)"
-                            returnKeyType="next"
-                            onSubmitEditing={handleSignup}
-                            style={styles.input}
-                        />
+                                onChangeText={setUsername}
+                                placeholder="Username"
+                                placeholderTextColor="rgba(0,0,0,0.5)"
+                                returnKeyType="next"
+                                onSubmitEditing={handleSignup}
+                                style={styles.input}
+                            />
                             <Text style={styles.label}>Email</Text>
                             <TextInput
                                 value={email}
-                            onChangeText={setEmail}
-                            placeholder="user@example.com"
-                            placeholderTextColor="rgba(0,0,0,0.5)"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            returnKeyType="next"
-                            onSubmitEditing={handleSignup}
-                            style={styles.input}
-                        />
+                                onChangeText={setEmail}
+                                placeholder="user@example.com"
+                                placeholderTextColor="rgba(0,0,0,0.5)"
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                returnKeyType="next"
+                                onSubmitEditing={handleSignup}
+                                style={styles.input}
+                            />
                             <Text style={styles.label}>Password</Text>
                             <TextInput
                                 value={password}
-                            onChangeText={setPassword}
-                            placeholder="Password"
-                            placeholderTextColor="rgba(0,0,0,0.5)"
-                            secureTextEntry
-                            returnKeyType="go"
-                            onSubmitEditing={handleSignup}
-                            style={styles.input}
-                        />
-                        {!!error && <Text style={styles.error}>{error}</Text>}
-                        <Text style={styles.helperText}>
-                            Already have an account?{" "}
-                            <Text style={styles.link} onPress={goToLogin}>Log in</Text>
-                        </Text>
-                    </View>
-                    <AnimatedButton
-                        title={submitting ? "Creating..." : "Create Account"}
+                                onChangeText={setPassword}
+                                placeholder="Password"
+                                placeholderTextColor="rgba(0,0,0,0.5)"
+                                secureTextEntry
+                                returnKeyType="go"
+                                onSubmitEditing={handleSignup}
+                                style={styles.input}
+                            />
+                            {!!error && <Text style={styles.error}>{error}</Text>}
+                            <Text style={styles.helperText}>
+                                Already have an account?{" "}
+                                <Text style={styles.link} onPress={goToLogin}>Log in</Text>
+                            </Text>
+
+                            <Pressable style={styles.demoButton} onPress={handleDemoSignup}>
+                                <Text style={styles.demoButtonText}>Quick Demo Access</Text>
+                            </Pressable>
+                        </View>
+                        <AnimatedButton
+                            title={submitting ? "Creating..." : "Create Account"}
                             onPress={handleSignup}
                             buttonStyle={{ backgroundColor: "#E5954E", borderColor: "#66380F", borderWidth: 2 }}
                             textStyle={{ color: "#fff" }}
@@ -148,6 +169,25 @@ const styles = StyleSheet.create({
     formFields: {
         gap: 16,
     },
+    demoBanner: {
+        backgroundColor: "#FEF3C7",
+        borderColor: "#F59E0B",
+        borderWidth: 1.5,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+    },
+    demoBannerTitle: {
+        fontWeight: "700",
+        fontSize: 16,
+        color: "#B45309",
+        marginBottom: 4,
+    },
+    demoBannerText: {
+        fontSize: 14,
+        color: "#4B5563",
+        lineHeight: 20,
+    },
     label: {
         fontWeight: "700",
         fontSize: 20,
@@ -169,10 +209,23 @@ const styles = StyleSheet.create({
     },
     helperText: {
         marginTop: 6,
-        fontSize: 16,
+        fontSize: 14,
     },
     link: {
         color: "#0066CC",
         textDecorationLine: "underline",
+    },
+    demoButton: {
+        backgroundColor: "#E5954E",
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        marginTop: 6,
+    },
+    demoButtonText: {
+        color: "#FFFFFF",
+        fontWeight: "600",
+        fontSize: 16,
     },
 });

@@ -1,12 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform, Animated } from 'react-native';
-import { useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useState } from 'react';
 
 import { useTheme } from '../styles/theme';
 import { useDevice } from "../app/device-context";
 
 import Footer from "../components/Footer";
 import AnimatedButton from '../components/AnimatedButton';
-
 
 export default function ContactScreen() {
     const { isDesktopWeb } = useDevice();
@@ -15,9 +14,40 @@ export default function ContactScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+    const [submitted, setSubmitted] = useState(false);
 
-    const handleSubmit = () => {
-        console.log("Contact?");
+    const showSweetAlert = async (titleMsg, messageStr, type = 'info') => {
+        if (Platform.OS === 'web') {
+            try {
+                // eslint-disable-next-line global-require
+                const swal = require('sweetalert');
+                await swal(titleMsg, messageStr, type);
+                return;
+            } catch (err) {
+                console.warn('SweetAlert failed', err);
+            }
+        }
+        Alert.alert(titleMsg, messageStr);
+    };
+
+    const handleSubmit = async () => {
+        setError('');
+        if (!name.trim() || !email.trim() || !message.trim()) {
+            setError('Please fill in all fields before sending.');
+            return;
+        }
+
+        if (!email.includes('@')) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        setSubmitted(true);
+        await showSweetAlert('Message Sent!', 'Thank you for reaching out. We will get back to you soon!', 'success');
+        setName('');
+        setEmail('');
+        setMessage('');
     };
 
     return (
@@ -37,44 +67,39 @@ export default function ContactScreen() {
                         <Text style={styles.label}>Name</Text>
                         <TextInput
                             value={name}
-                            onChangeText={setName}
+                            onChangeText={(t) => { setName(t); setError(''); setSubmitted(false); }}
                             placeholder="Your Name"
                             placeholderTextColor="rgba(0,0,0,0.5)"
                             returnKeyType="next"
-                            onSubmitEditing={handleSubmit}
                             style={styles.input}
                         />
 
                         <Text style={styles.label}>Email</Text>
                         <TextInput
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={(t) => { setEmail(t); setError(''); setSubmitted(false); }}
                             placeholder="user@example.com"
                             placeholderTextColor="rgba(0,0,0,0.5)"
                             keyboardType="email-address"
                             autoCapitalize="none"
                             returnKeyType="next"
-                            onSubmitEditing={handleSubmit}
                             style={styles.input}
                         />
 
                         <Text style={styles.label}>Message</Text>
                         <TextInput
                             value={message}
-                            onChangeText={setMessage}
-                            placeholder="Your Message"
+                            onChangeText={(t) => { setMessage(t); setError(''); setSubmitted(false); }}
+                            placeholder="Your Message..."
                             placeholderTextColor="rgba(0,0,0,0.5)"
                             multiline
-                            onSubmitEditing={handleSubmit}
-                            onKeyPress={({ nativeEvent }) => {
-                                if (nativeEvent.key === 'Enter') {
-                                    handleSubmit();
-                                }
-                            }}
-                            returnKeyType="send"
                             style={[styles.input, styles.textarea]}
                         />
-                        <AnimatedButton title="Contact" onPress={handleSubmit} />
+
+                        {!!error && <Text style={styles.errorText}>{error}</Text>}
+                        {submitted && <Text style={styles.successText}>✓ Message received!</Text>}
+
+                        <AnimatedButton title="Send Message" onPress={handleSubmit} />
                     </View>
                 </View>
 
@@ -95,7 +120,7 @@ const styles = StyleSheet.create({
         borderRadius: 21,
         padding: 20,
         gap: 16,
-        minHeight: 620,
+        minHeight: 520,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 6,
@@ -103,41 +128,28 @@ const styles = StyleSheet.create({
     },
     label: {
         fontWeight: "700",
-        fontSize: 20,
+        fontSize: 18,
     },
     input: {
         width: "100%",
         padding: 12,
         backgroundColor: "#FFF",
         borderRadius: 12,
-        fontSize: 18,
+        fontSize: 16,
         borderWidth: 1,
         borderColor: "#D0D0D0",
     },
     textarea: {
-        height: 220,
+        minHeight: 120,
         textAlignVertical: "top",
     },
-    button: {
-        width: "100%",
-        maxWidth: 330,
-        backgroundColor: "#60E54E",
-        borderWidth: 2,
-        borderColor: "#19660F",
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignSelf: "center",
-        alignItems: "center",
-        marginTop: 10,
-        shadowColor: "#19660F",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 22,
+    errorText: {
+        color: "#DC2626",
         fontWeight: "600",
+    },
+    successText: {
+        color: "#16A34A",
+        fontWeight: "600",
+        fontSize: 16,
     },
 });

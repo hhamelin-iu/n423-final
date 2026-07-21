@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/firebaseConfig';
 import { useAuth } from '../src/auth/AuthContext';
+import { isFirebaseConfigured } from '../src/services/dataService';
 import { useTheme } from '../styles/theme';
 import Footer from "../components/Footer";
 import { useDevice } from "../app/device-context";
@@ -14,12 +15,14 @@ export default function LoginScreen() {
     const { isDesktopWeb } = useDevice();
     const theme = useTheme();
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { user, loading, signInAsDemo } = useAuth();
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const hasFirebase = isFirebaseConfigured();
+
     const showSweetAlert = async (titleMsg, message, type = 'info') => {
         if (Platform.OS === 'web') {
             try {
@@ -44,9 +47,20 @@ export default function LoginScreen() {
         router.replace('/signup');
     };
 
+    const handleDemoLogin = async () => {
+        signInAsDemo();
+        await showSweetAlert('Demo Mode Active', 'Welcome to LOREBoards portfolio demo!', 'success');
+        router.replace('/');
+    };
+
     const handleLogin = async () => {
         if (submitting || loading) return;
         setError('');
+
+        if (!hasFirebase) {
+            handleDemoLogin();
+            return;
+        }
 
         if (!username.trim() || !password) {
             setError('Please enter your username/email and password.');
@@ -59,7 +73,6 @@ export default function LoginScreen() {
             let emailToUse = identifier;
 
             if (!identifier.includes('@')) {
-                // Look up the email from profiles where the username matches the input.
                 const profileQuery = query(
                     collection(db, 'profiles'),
                     where('username', '==', identifier),
@@ -83,7 +96,7 @@ export default function LoginScreen() {
             await showSweetAlert('Logged in', `Welcome back, ${displayName}!`, 'success');
         } catch (e) {
             if (e?.code === 'permission-denied') {
-                setError('Username lookup is blocked by Firestore rules. Please log in with your email or allow read access on profiles.');
+                setError('Username lookup is blocked by Firestore rules. Please log in with your email.');
             } else {
                 setError(e.message);
             }
@@ -105,32 +118,36 @@ export default function LoginScreen() {
                             <Text style={styles.label}>Username/Email</Text>
                             <TextInput
                                 value={username}
-                            onChangeText={setUsername}
-                            placeholder="Username or email"
-                            placeholderTextColor="rgba(0,0,0,0.5)"
-                            autoCapitalize="none"
-                            returnKeyType="next"
-                            onSubmitEditing={handleLogin}
-                            style={styles.input}
-                        />
+                                onChangeText={setUsername}
+                                placeholder="Username or email"
+                                placeholderTextColor="rgba(0,0,0,0.5)"
+                                autoCapitalize="none"
+                                returnKeyType="next"
+                                onSubmitEditing={handleLogin}
+                                style={styles.input}
+                            />
 
                             <Text style={styles.label}>Password</Text>
                             <TextInput
                                 value={password}
-                            onChangeText={setPassword}
-                            placeholder="Password"
-                            placeholderTextColor="rgba(0,0,0,0.5)"
-                            secureTextEntry
-                            returnKeyType="go"
-                            onSubmitEditing={handleLogin}
-                            style={styles.input}
-                        />
+                                onChangeText={setPassword}
+                                placeholder="Password"
+                                placeholderTextColor="rgba(0,0,0,0.5)"
+                                secureTextEntry
+                                returnKeyType="go"
+                                onSubmitEditing={handleLogin}
+                                style={styles.input}
+                            />
 
                             {!!error && <Text style={styles.error}>{error}</Text>}
                             <Text style={styles.helperText}>
                                 Don't already have an account?{" "}
                                 <Text style={styles.link} onPress={goToSignup}>Sign up</Text>
                             </Text>
+
+                            <Pressable style={styles.demoButton} onPress={handleDemoLogin}>
+                                <Text style={styles.demoButtonText}>Continue as Demo User</Text>
+                            </Pressable>
                         </View>
                         <AnimatedButton title={submitting ? "Logging in..." : "Login"} onPress={handleLogin} />
                     </View>
@@ -156,10 +173,29 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 6,
         elevation: 6,
-        justifyContent: "space-between",
+        justify: "space-between",
     },
     formFields: {
         gap: 16,
+    },
+    demoBanner: {
+        backgroundColor: "#E0E7FF",
+        borderColor: "#6366F1",
+        borderWidth: 1.5,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+    },
+    demoBannerTitle: {
+        fontWeight: "700",
+        fontSize: 16,
+        color: "#4338CA",
+        marginBottom: 4,
+    },
+    demoBannerText: {
+        fontSize: 14,
+        color: "#374151",
+        lineHeight: 20,
     },
     label: {
         fontWeight: "700",
@@ -187,5 +223,18 @@ const styles = StyleSheet.create({
     link: {
         color: "#0066CC",
         textDecorationLine: "underline",
+    },
+    demoButton: {
+        backgroundColor: "#4F46E5",
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        marginTop: 6,
+    },
+    demoButtonText: {
+        color: "#FFFFFF",
+        fontWeight: "600",
+        fontSize: 16,
     },
 });

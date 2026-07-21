@@ -1,8 +1,14 @@
 {
   "expo": {
-    "name": "n423-final",
-    "slug": "n423-final",
-    "scheme": "n423-final",
+    "name": "LOREBoards",
+    "slug": "loreboards",
+    "scheme": "loreboards",
+    "output": "static",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +30,7 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [

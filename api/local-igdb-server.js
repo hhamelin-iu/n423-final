@@ -193,9 +193,8 @@ const server = http.createServer(async (req, res) => {
       const token = await getIgdbToken();
       const safeTerm = search.replace(/"/g, '\\"');
       const body = `
+search "${safeTerm}";
 fields id,name,first_release_date,total_rating,total_rating_count,hypes,platforms.id,platforms.name,release_dates.date,release_dates.platform,cover.image_id,screenshots.image_id,involved_companies.developer,involved_companies.company.name;
-where name ~ *"${safeTerm}"*;
-sort total_rating_count desc;
 limit ${Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 12) : 6};
 `;
 

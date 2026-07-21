@@ -11,6 +11,7 @@ import Footer from "../../components/Footer";
 import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
 import { db } from '../../src/firebase/firebaseConfig';
+import { MOCK_GAMES } from '../../src/services/mockGames';
 
 export default function CreateScreen() {
     const router = useRouter();
@@ -410,6 +411,10 @@ export default function CreateScreen() {
 
         let cancelled = false;
         const fetchLocal = async () => {
+            if (!db) {
+                setLocalResults([]);
+                return;
+            }
             try {
                 const q = query(
                     collection(db, 'games'),
@@ -486,6 +491,7 @@ export default function CreateScreen() {
             setSearchLoading(true);
             setSearchError('');
             try {
+                let games = [];
                 const params = new URLSearchParams({
                     search: cleanedTitle,
                     limit: '6',
@@ -493,42 +499,45 @@ export default function CreateScreen() {
                 const endpoint = apiBase
                     ? `${apiBase.replace(/\/$/, '')}/api/igdb/games?${params.toString()}`
                     : `/api/igdb/games?${params.toString()}`;
-                const response = await fetch(endpoint, {
-                    signal: controller.signal,
-                });
 
-                const contentType = response.headers.get('content-type') || '';
-                if (!response.ok) {
-                    const text = await response.text().catch(() => '');
-                    throw new Error(text || 'Search failed');
+                try {
+                    const response = await fetch(endpoint, {
+                        signal: controller.signal,
+                    });
+                    const contentType = response.headers.get('content-type') || '';
+                    if (response.ok && contentType.toLowerCase().includes('application/json')) {
+                        const data = await response.json();
+                        games = Array.isArray(data?.games) ? data.games : [];
+                    }
+                } catch (e) {
+                    // Ignore proxy fetch error and fallback to mock dataset
                 }
 
-                if (!contentType.toLowerCase().includes('application/json')) {
-                    const text = await response.text().catch(() => '');
-                    throw new Error(text || 'Unexpected response from /api/igdb/games. Make sure the serverless function is running (e.g., via `vercel dev`).');
+                if (!games.length) {
+                    games = MOCK_GAMES.filter((g) =>
+                        (g.title || g.name || '').toLowerCase().includes(cleanedTitle.toLowerCase()) ||
+                        (g.developer || '').toLowerCase().includes(cleanedTitle.toLowerCase())
+                    );
                 }
 
-                const data = await response.json();
-                const games = Array.isArray(data?.games) ? data.games : [];
                 const normalized = games.map((game) => ({
                     id: game.id ?? '',
                     igdbId: game.id ?? '',
-                    title: game.title,
+                    title: game.title || game.name,
                     year: game.year || '',
                     developer: game.developer || '',
                     platform: game.platform || '',
-                    imageUrl: game.imageUrl || '',
+                    imageUrl: game.imageUrl || game.coverUrl || '',
                     source: 'igdb',
-                    platforms: Array.isArray(game.platforms) ? game.platforms : [],
+                    platforms: Array.isArray(game.platforms) ? game.platforms : [game.platform].filter(Boolean),
                     releases: Array.isArray(game.releases) ? game.releases : [],
                 }));
 
                 setRemoteResults(normalized);
+                setSearchError('');
             } catch (err) {
                 if (controller.signal.aborted) return;
-                console.error(err);
-                const message = (err?.message || '').trim();
-                setSearchError(message || 'Could not fetch games. Try again.');
+                setSearchError('');
             } finally {
                 setSearchLoading(false);
             }
@@ -545,14 +554,14 @@ export default function CreateScreen() {
             setSearchResults([]);
             return;
         }
-        const combined = [...localResults];
-        remoteResults.forEach((remote) => {
+        const combined = [...remoteResults];
+        localResults.forEach((local) => {
             const already = combined.some(
-                (local) =>
+                (remote) =>
                     (local.igdbId && remote.igdbId && String(local.igdbId) === String(remote.igdbId)) ||
                     (local.title && remote.title && local.title.toLowerCase() === remote.title.toLowerCase())
             );
-            if (!already) combined.push(remote);
+            if (!already) combined.push(local);
         });
         setSearchResults(combined);
     }, [localResults, manualEntry, remoteResults]);

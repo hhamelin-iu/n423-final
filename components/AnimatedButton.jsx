@@ -1,4 +1,4 @@
-import { Animated, Pressable, Text } from 'react-native';
+import { Animated, Pressable, Text, Platform } from 'react-native';
 import { useState, useRef } from 'react';
 
 export default function AnimatedButton({ title, onPress, buttonStyle, textStyle }) {
@@ -8,7 +8,7 @@ export default function AnimatedButton({ title, onPress, buttonStyle, textStyle 
     const onPressIn = () => {
         Animated.spring(scaleAnim, {
             toValue: 0.93,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
             speed: 60,
             bounciness: 10,
             overshootClamping: true,
@@ -18,7 +18,7 @@ export default function AnimatedButton({ title, onPress, buttonStyle, textStyle 
     const onPressOut = () => {
         Animated.spring(scaleAnim, {
             toValue: 1,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
             speed: 30,
             bounciness: 10,
             overshootClamping: true,

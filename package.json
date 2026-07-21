@@ -1,11 +1,12 @@
 {
-  "name": "n423-final",
+  "name": "loreboards",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
     "dev": "node scripts/dev.js",
     "start": "expo start",
     "web": "expo start --web",
+    "build:web": "expo export -p web && node scripts/fix-dist-fonts.js",
     "android": "expo start --android",
     "ios": "expo start --ios"
   },
@@ -32,5 +33,9 @@
     "react-native-web": "^0.21.0",
     "sweetalert": "^2.1.2"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
 }

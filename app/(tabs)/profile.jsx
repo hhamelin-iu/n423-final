@@ -11,11 +11,12 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
 import { db, auth } from '../../src/firebase/firebaseConfig';
+import { isFirebaseConfigured } from '../../src/services/dataService';
 
 export default function ProfileScreen() {
     const { isDesktopWeb } = useDevice();
     const router = useRouter();
-    const { signOut, user, loading } = useAuth();
+    const { signOut, user, loading, isDemoMode, signInAsDemo } = useAuth();
     const [photoData, setPhotoData] = useState(null);
 
     useEffect(() => {
@@ -37,19 +38,26 @@ export default function ProfileScreen() {
                 setPhotoData(null);
                 return;
             }
-            try {
-                const snap = await getDoc(doc(db, 'profiles', user.uid));
-                const data = snap.data();
-                setPhotoData(data?.photoData || user.photoURL || null);
-            } catch {
-                setPhotoData(user?.photoURL || null);
+            if (user.photoData) {
+                setPhotoData(user.photoData);
+                return;
             }
+            if (isFirebaseConfigured() && db) {
+                try {
+                    const snap = await getDoc(doc(db, 'profiles', user.uid));
+                    const data = snap.data();
+                    setPhotoData(data?.photoData || user.photoURL || null);
+                    return;
+                } catch {
+                    // ignore
+                }
+            }
+            setPhotoData(user?.photoURL || null);
         };
         loadProfile();
     }, [user]);
 
     const handlePickImage = async () => {
-        if (!auth.currentUser) return;
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) return;
 
@@ -69,10 +77,16 @@ export default function ProfileScreen() {
             );
             if (!manipulated.base64) return;
             const dataUrl = `data:image/jpeg;base64,${manipulated.base64}`;
-            await setDoc(doc(db, 'profiles', auth.currentUser.uid), { photoData: dataUrl }, { merge: true });
+
             setPhotoData(dataUrl);
-            if (dataUrl.length < 1900) {
-                await updateProfile(auth.currentUser, { photoURL: dataUrl });
+
+            if (isDemoMode || !isFirebaseConfigured()) {
+                signInAsDemo({ photoData: dataUrl });
+            } else if (auth.currentUser && db) {
+                await setDoc(doc(db, 'profiles', auth.currentUser.uid), { photoData: dataUrl }, { merge: true });
+                if (dataUrl.length < 1900) {
+                    await updateProfile(auth.currentUser, { photoURL: dataUrl });
+                }
             }
         } catch (e) {
             console.warn('Failed to update profile photo', e);
@@ -93,14 +107,20 @@ export default function ProfileScreen() {
                     <Text style={styles.changePhotoText}>Change photo</Text>
                 </Pressable>
                 <Text style={styles.name}>{displayName}</Text>
+                {isDemoMode && (
+                    <Text style={styles.demoTag}>Demo Profile</Text>
+                )}
             </View>
             <View style={styles.topList}>
                 <Pressable style={styles.listItem} onPress={() => router.push('/search')}>
                     <Text style={styles.listText}>View Completions</Text>
                 </Pressable>
+                <Pressable style={styles.listItem} onPress={() => router.push('/submit')}>
+                    <Text style={styles.listText}>Submit New Game</Text>
+                </Pressable>
             </View>
-            <Pressable style={styles.logoutBtn} onPress={signOut}>
-                <Text style={styles.logoutText}>Log Out</Text>
+            <Pressable style={styles.signOutBtn} onPress={signOut}>
+                <Text style={styles.signOutText}>Sign Out</Text>
             </Pressable>
         </View>
     );
@@ -110,60 +130,62 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingHorizontal: 20,
-        paddingVertical: 30,
+        padding: 20,
         justifyContent: 'space-between',
     },
     profileHeader: {
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 20,
+        marginTop: 20,
+        marginBottom: 30,
     },
     avatar: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        marginBottom: 4,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
     },
     changePhotoText: {
-        fontSize: 14,
-        color: '#0066CC',
-        textDecorationLine: 'underline',
+        fontSize: 12,
+        color: '#6366F1',
+        marginTop: 4,
         textAlign: 'center',
     },
     name: {
-        fontSize: 20,
-        fontWeight: '700',
-        textAlign: 'center',
-        width: '100%',
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 10,
+    },
+    demoTag: {
+        fontSize: 12,
+        color: '#4338CA',
+        backgroundColor: '#EEF2FF',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        marginTop: 6,
+        overflow: 'hidden',
     },
     topList: {
         gap: 12,
     },
     listItem: {
-        paddingVertical: 16,
-        paddingHorizontal: 14,
-        borderWidth: 1,
-        borderColor: '#dcdcdc',
-        borderRadius: 14,
-        backgroundColor: '#f7f7f7',
+        padding: 16,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 12,
     },
     listText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
     },
-    logoutBtn: {
-        paddingVertical: 16,
-        paddingHorizontal: 14,
+    signOutBtn: {
+        padding: 16,
+        backgroundColor: '#fee2e2',
         borderRadius: 12,
-        backgroundColor: '#E5954E',
-        borderWidth: 2,
-        borderColor: '#66380F',
         alignItems: 'center',
+        marginBottom: 20,
     },
-    logoutText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '700',
+    signOutText: {
+        color: '#dc2626',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

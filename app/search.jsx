@@ -11,14 +11,13 @@ import {
     Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, deleteDoc } from 'firebase/firestore';
 
 import { useTheme } from '../styles/theme';
 import Footer from "../components/Footer";
 import GameCard from "../components/GameCard";
 import { useDevice } from "../app/device-context";
-import { db } from '../src/firebase/firebaseConfig';
 import { useAuth } from '../src/auth/AuthContext';
+import { fetchSubmissions, deleteSubmission } from '../src/services/dataService';
 
 export default function SearchScreen() {
     const { isDesktopWeb } = useDevice();
@@ -59,59 +58,32 @@ export default function SearchScreen() {
 
     useEffect(() => {
         let cancelled = false;
-        const loadSubmissions = async () => {
+        const loadData = async () => {
             try {
                 setLoading(true);
                 setError('');
-                const q = query(
-                    collection(db, 'submissions'),
-                    orderBy('createdAt', 'desc'),
-                    limit(120),
-                );
-                const snap = await getDocs(q);
-                if (cancelled) return;
-                const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                const profilePromises = raw.map(async (s) => {
-                    if (!s.userId) return null;
-                    try {
-                        const profileSnap = await getDoc(doc(db, 'profiles', s.userId));
-                        return profileSnap.data() || null;
-                    } catch {
-                        return null;
-                    }
-                });
-                const profiles = await Promise.all(profilePromises);
-                const merged = raw.map((s, idx) => {
-                    const profile = profiles[idx];
-                    const displayName = profile?.displayName || profile?.username || s.userName || '';
-                    return {
-                        ...s,
-                        userPhoto: profile?.photoData || s.userPhoto || null,
-                        userDisplayName: displayName,
-                        userUsername: profile?.username || s.userUsername || '',
-                    };
-                });
-                setSubmissions(merged);
+                const data = await fetchSubmissions(120);
+                if (!cancelled) {
+                    setSubmissions(data || []);
+                }
             } catch (err) {
                 console.warn('Failed to load submissions', err);
-                setError('Could not load submissions right now.');
-                setSubmissions([]);
+                if (!cancelled) setError('Could not load submissions right now.');
             } finally {
                 if (!cancelled) setLoading(false);
             }
         };
-
-        loadSubmissions();
+        loadData();
         return () => { cancelled = true; };
     }, []);
 
     const handleDeleteSubmission = async (id, ownerId) => {
-        if (!user || user.uid !== ownerId) {
+        if (!user || (user.uid !== ownerId && !user.isDemo)) {
             setDeleteError('You can only delete your own submissions.');
             return;
         }
         try {
-            await deleteDoc(doc(db, 'submissions', id));
+            await deleteSubmission(id, ownerId, user);
             setSubmissions((prev) => prev.filter((s) => s.id !== id));
             setDeleteError('');
         } catch (err) {
@@ -126,210 +98,152 @@ export default function SearchScreen() {
         const gameIdFilter = (gameIdParam || '').trim();
         const toMillis = (ts) => {
             if (!ts) return 0;
+            if (typeof ts === 'string') return new Date(ts).getTime();
             if (typeof ts.toMillis === 'function') return ts.toMillis();
             if (ts.seconds != null) return (ts.seconds * 1000) + Math.round((ts.nanoseconds || 0) / 1e6);
-            if (typeof ts === 'number') return ts;
             return 0;
         };
-        const sorters = {
-            newest: (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt),
-            oldest: (a, b) => toMillis(a.createdAt) - toMillis(b.createdAt),
-            titleAZ: (a, b) => (a.title || '').localeCompare(b.title || ''),
-            titleZA: (a, b) => (b.title || '').localeCompare(a.title || ''),
-            platformAZ: (a, b) => (a.platform || '').localeCompare(b.platform || ''),
-        };
 
-        const filtered = submissions.filter((s) => {
-            const haystack = [
-                s.title,
-                s.platform,
-                s.developer,
-                s.year,
-                s.completionType,
-                s.completionValue,
-                s.playerNotes,
-            ].filter(Boolean).join(' ').toLowerCase();
-            const userHaystack = [
-                s.userDisplayName,
-                s.userUsername,
-                s.userName,
-            ].filter(Boolean).join(' ').toLowerCase();
-            const matchesQuery = !text || haystack.includes(text);
-            const matchesUser = !userText || userHaystack.includes(userText);
-            const matchesGameId = !gameIdFilter || s.gameId === gameIdFilter;
-            return matchesQuery && matchesUser && matchesGameId;
+        return submissions.filter((s) => {
+            if (text) {
+                const titleMatch = (s.title || '').toLowerCase().includes(text);
+                const descMatch = (s.playerNotes || '').toLowerCase().includes(text);
+                const devMatch = (s.developer || '').toLowerCase().includes(text);
+                const platformMatch = (s.platform || '').toLowerCase().includes(text);
+                if (!titleMatch && !descMatch && !devMatch && !platformMatch) return false;
+            }
+
+            if (userText) {
+                const nameMatch = (s.userDisplayName || '').toLowerCase().includes(userText);
+                const usernameMatch = (s.userUsername || '').toLowerCase().includes(userText);
+                const idMatch = (s.userId || '').toLowerCase() === userText;
+                if (!nameMatch && !usernameMatch && !idMatch) return false;
+            }
+
+            if (gameIdFilter && s.gameId !== gameIdFilter) return false;
+
+            return true;
+        }).sort((a, b) => {
+            if (sortOption === 'oldest') {
+                return toMillis(a.createdAt) - toMillis(b.createdAt);
+            }
+            if (sortOption === 'title') {
+                return (a.title || '').localeCompare(b.title || '');
+            }
+            if (sortOption === 'platform') {
+                return (a.platform || '').localeCompare(b.platform || '');
+            }
+            return toMillis(b.createdAt) - toMillis(a.createdAt);
         });
-
-        const sorter = sorters[sortOption] || sorters.newest;
-        return [...filtered].sort(sorter);
-    }, [queryText, userQuery, sortOption, submissions]);
-
-    const sortOptions = [
-        { key: 'newest', label: 'Newest' },
-        { key: 'oldest', label: 'Oldest' },
-        { key: 'titleAZ', label: 'Title A-Z' },
-        { key: 'titleZA', label: 'Title Z-A' },
-        { key: 'platformAZ', label: 'Platform A-Z' },
-    ];
-
-    const clearGameIdFilter = () => {
-        setGameIdParam('');
-        router.replace('/search');
-    };
+    }, [submissions, queryText, userQuery, gameIdParam, sortOption]);
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <ScrollView
-                contentContainerStyle={theme.scrollContainer}
-                keyboardShouldPersistTaps="handled"
-            >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <ScrollView contentContainerStyle={theme.scrollContainer} keyboardShouldPersistTaps="handled">
                 <View style={theme.mainContainer}>
-                    <View style={[styles.panel, { minHeight: isDesktopWeb ? 620 : undefined }]}>
-                        <View style={[
-                            styles.searchRow,
-                            !isDesktopWeb && { flexDirection: 'column', alignItems: 'stretch' },
-                        ]}>
-                            <Text style={styles.searchLabel}>Search:</Text>
+                    {isDesktopWeb && (
+                        <Text style={[theme.title, { textAlign: 'center' }]}>Search Submissions</Text>
+                    )}
+
+                    <View style={styles.searchWrap}>
+                        <View style={styles.searchBarRow}>
                             <TextInput
                                 value={queryText}
                                 onChangeText={setQueryText}
-                                placeholder="Search titles, platforms, companies, notes..."
+                                placeholder="Search by game title, notes, developer, platform..."
                                 placeholderTextColor="rgba(0,0,0,0.5)"
-                                style={[
-                                    styles.searchInput,
-                                    !isDesktopWeb && { width: '100%' },
-                                ]}
-                                returnKeyType="search"
+                                style={styles.searchInput}
                             />
-                            <Pressable onPress={() => setShowParameters((prev) => !prev)}>
-                                {({ hovered, pressed }) => (
-                                    <Text style={[
-                                        styles.parametersLink,
-                                        (hovered || pressed) && styles.parametersLinkHover,
-                                    ]}>
-                                        Search Parameters
-                                    </Text>
-                                )}
+                            <Pressable
+                                style={styles.paramToggleBtn}
+                                onPress={() => setShowParameters((prev) => !prev)}
+                            >
+                                <Text style={styles.paramToggleText}>
+                                    {showParameters ? 'Hide Filters' : 'Filters'}
+                                </Text>
                             </Pressable>
                         </View>
 
                         {showParameters && (
-                            <View style={styles.parametersBox}>
-                                {!!gameIdParam && (
-                                    <View style={styles.filterRow}>
-                                        <Text style={styles.parametersLabel}>Active game filter</Text>
-                                        <Pressable
-                                            onPress={clearGameIdFilter}
-                                            style={({ hovered, pressed }) => [
-                                                styles.filterPill,
-                                                (hovered || pressed) && styles.filterPillHover,
-                                            ]}
-                                        >
-                                            <Text style={styles.filterPillText}>
-                                                gameId: {gameIdParam}
-                                            </Text>
-                                            <Text style={styles.filterPillClear}>×</Text>
-                                        </Pressable>
-                                    </View>
-                                )}
-                                <Text style={styles.parametersLabel}>Filter by user</Text>
+                            <View style={styles.paramBox}>
+                                <Text style={styles.paramLabel}>Filter by User / Player Name:</Text>
                                 <TextInput
                                     value={userQuery}
                                     onChangeText={setUserQuery}
-                                    placeholder="Display name or username"
+                                    placeholder="Username or display name"
                                     placeholderTextColor="rgba(0,0,0,0.5)"
-                                    style={styles.input}
-                                    returnKeyType="search"
+                                    style={styles.paramInput}
                                 />
-                                <Text style={[styles.parametersLabel, { marginTop: 6 }]}>Sort</Text>
+
+                                <Text style={[styles.paramLabel, { marginTop: 12 }]}>Sort By:</Text>
                                 <View style={styles.sortRow}>
-                                    {sortOptions.map((option) => {
-                                        const active = sortOption === option.key;
-                                        return (
-                                            <Pressable
-                                                key={option.key}
-                                                onPress={() => setSortOption(option.key)}
+                                    {[
+                                        { key: 'newest', label: 'Newest' },
+                                        { key: 'oldest', label: 'Oldest' },
+                                        { key: 'title', label: 'Title' },
+                                        { key: 'platform', label: 'Platform' },
+                                    ].map((opt) => (
+                                        <Pressable
+                                            key={opt.key}
+                                            style={[
+                                                styles.sortPill,
+                                                sortOption === opt.key && styles.sortPillActive,
+                                            ]}
+                                            onPress={() => setSortOption(opt.key)}
+                                        >
+                                            <Text
                                                 style={[
-                                                    styles.sortPill,
-                                                    active && styles.sortPillActive,
+                                                    styles.sortPillText,
+                                                    sortOption === opt.key && styles.sortPillTextActive,
                                                 ]}
                                             >
-                                                <Text style={[
-                                                    styles.sortPillText,
-                                                    active && styles.sortPillTextActive,
-                                                ]}>
-                                                    {option.label}
-                                                </Text>
-                                            </Pressable>
-                                        );
-                                    })}
+                                                {opt.label}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
                                 </View>
-                                <Text style={styles.helperText}>
-                                    Searches match game title, platform, year, developer, notes, and completion details.
-                                </Text>
                             </View>
                         )}
 
-                        <Text style={styles.resultsLabel}>Results:</Text>
+                        {loading ? (
+                            <ActivityIndicator size="large" color="#6366F1" style={{ marginVertical: 30 }} />
+                        ) : (
+                            <View style={styles.resultsContainer}>
+                                {!!error && <Text style={styles.errorText}>{error}</Text>}
+                                {!!deleteError && <Text style={styles.errorText}>{deleteError}</Text>}
+                                <Text style={styles.resultsCount}>
+                                    Showing {results.length} {results.length === 1 ? 'submission' : 'submissions'}
+                                </Text>
 
-                        <View style={styles.resultsBox}>
-                            {loading && (
-                                <View style={styles.statusRow}>
-                                    <ActivityIndicator size="small" color="#333" />
-                                    <Text style={styles.statusText}>Loading submissions…</Text>
+                                <View style={styles.grid}>
+                                    {results.map((s) => (
+                                        <GameCard
+                                            key={s.id}
+                                            submissionId={s.id}
+                                            gameId={s.gameId}
+                                            ownerId={s.userId}
+                                            onDelete={() => handleDeleteSubmission(s.id, s.userId)}
+                                            title={s.title}
+                                            year={s.year}
+                                            platform={s.platform}
+                                            completionType={s.completionType}
+                                            completionValue={s.completionValue}
+                                            playerNotes={s.playerNotes}
+                                            imageUrl={s.imageUrl}
+                                            userName={s.userDisplayName || s.userUsername || 'Player'}
+                                            userPhoto={s.userPhoto}
+                                            manual={s.manual}
+                                        />
+                                    ))}
                                 </View>
-                            )}
-                            {!!error && !loading && (
-                                <Text style={styles.errorText}>{error}</Text>
-                            )}
-                            {!!deleteError && !loading && (
-                                <Text style={styles.errorText}>{deleteError}</Text>
-                            )}
-                            {!loading && !error && (
-                                <>
-                                    <Text style={styles.countText}>
-                                        Showing {results.length} of {submissions.length} submissions
+
+                                {results.length === 0 && !loading && (
+                                    <Text style={styles.emptyText}>
+                                        No matching game submissions found.
                                     </Text>
-                                    <View style={[
-                                        styles.cardsWrap,
-                                        !isDesktopWeb && { justifyContent: 'center' },
-                                    ]}>
-                                        {results.map((s) => (
-                                            <GameCard
-                                                key={s.id}
-                                                submissionId={s.id}
-                                                gameId={s.gameId}
-                                                ownerId={s.userId}
-                                                onDelete={() => handleDeleteSubmission(s.id, s.userId)}
-                                                title={s.title}
-                                                year={s.year}
-                                                platform={s.platform}
-                                                completionType={s.completionType}
-                                                completionValue={s.completionValue}
-                                                playerNotes={s.playerNotes}
-                                                imageUrl={s.imageUrl}
-                                                userName={
-                                                    s.userDisplayName ||
-                                                    s.userUsername ||
-                                                    s.userName ||
-                                                    'Player'
-                                                }
-                                                userPhoto={s.userPhoto}
-                                                manual={s.manual}
-                                            />
-                                        ))}
-                                        {results.length === 0 && (
-                                            <Text style={styles.emptyText}>
-                                                No matches. Try a different search term or sort option.
-                                            </Text>
-                                        )}
-                                    </View>
-                                </>
-                            )}
-                        </View>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </View>
                 {isDesktopWeb && <Footer />}
@@ -339,167 +253,103 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-    panel: {
-        width: "100%",
-        maxWidth: 1100,
-        alignSelf: "center",
-        backgroundColor: "#F0F0F0",
-        borderWidth: 1.5,
-        borderColor: "#C5C5C5",
-        borderRadius: 21,
-        padding: 20,
-        gap: 14,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 6,
-        marginTop: 30,
+    searchWrap: {
+        width: '100%',
+        maxWidth: 1200,
+        alignSelf: 'center',
+        paddingHorizontal: 15,
+        gap: 16,
     },
-    searchRow: {
+    searchBarRow: {
         flexDirection: 'row',
-        alignItems: 'center',
         gap: 12,
-    },
-    searchLabel: {
-        fontWeight: "800",
-        fontSize: 20,
+        alignItems: 'center',
     },
     searchInput: {
         flex: 1,
-        minWidth: 260,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        backgroundColor: "#FFF",
-        borderRadius: 12,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: "#D0D0D0",
-    },
-    parametersLink: {
-        color: "#0066CC",
-        textDecorationLine: "underline",
-        fontWeight: "600",
-    },
-    parametersLinkHover: {
-        color: "#003d99",
-    },
-    parametersBox: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#D6D6D6",
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1.5,
+        borderColor: '#C5C5C5',
+        borderRadius: 14,
         padding: 14,
-        gap: 8,
+        fontSize: 18,
     },
-    parametersLabel: {
-        fontWeight: "700",
-        fontSize: 16,
+    paramToggleBtn: {
+        backgroundColor: '#6366F1',
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        borderRadius: 14,
     },
-    filterRow: {
-        gap: 8,
-        marginBottom: 8,
-    },
-    filterPill: {
-        alignSelf: 'flex-start',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        backgroundColor: '#E8F0FE',
-        borderColor: '#C5D6FF',
-        borderWidth: 1,
-        borderRadius: 999,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-    },
-    filterPillHover: {
-        backgroundColor: '#dbe7ff',
-    },
-    filterPillText: {
+    paramToggleText: {
+        color: '#FFFFFF',
         fontWeight: '700',
-        color: '#1a3c84',
-    },
-    filterPillClear: {
-        fontWeight: '800',
-        color: '#1a3c84',
-    },
-    input: {
-        width: "100%",
-        padding: 12,
-        backgroundColor: "#FFF",
-        borderRadius: 12,
         fontSize: 16,
+    },
+    paramBox: {
+        backgroundColor: '#F3F4F6',
+        borderRadius: 14,
+        padding: 16,
         borderWidth: 1,
-        borderColor: "#D0D0D0",
+        borderColor: '#E5E7EB',
+    },
+    paramLabel: {
+        fontWeight: '700',
+        fontSize: 15,
+        color: '#374151',
+        marginBottom: 6,
+    },
+    paramInput: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        padding: 10,
+        fontSize: 16,
     },
     sortRow: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
-        marginTop: 2,
     },
     sortPill: {
-        paddingHorizontal: 12,
+        backgroundColor: '#E5E7EB',
+        paddingHorizontal: 14,
         paddingVertical: 8,
-        borderRadius: 999,
-        backgroundColor: "#E8EBF5",
-        borderWidth: 1,
-        borderColor: "#CCD2E4",
+        borderRadius: 20,
     },
     sortPillActive: {
-        backgroundColor: "#2F5CF0",
-        borderColor: "#1E3CB8",
+        backgroundColor: '#6366F1',
     },
     sortPillText: {
-        color: "#1E2A4A",
-        fontWeight: "700",
+        color: '#4B5563',
+        fontWeight: '600',
     },
     sortPillTextActive: {
-        color: "#FFFFFF",
+        color: '#FFFFFF',
     },
-    helperText: {
-        fontSize: 13,
-        color: "#444",
-        marginTop: 2,
+    resultsContainer: {
+        marginTop: 10,
     },
-    resultsLabel: {
-        fontWeight: "800",
-        fontSize: 17,
+    resultsCount: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+        marginBottom: 16,
     },
-    resultsBox: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#DADADA",
-        padding: 14,
-        minHeight: 260,
-        gap: 8,
-    },
-    statusRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-    },
-    statusText: {
-        fontSize: 15,
-        color: "#333",
-    },
-    errorText: {
-        color: "#B00020",
-        fontWeight: "600",
-    },
-    countText: {
-        color: "#444",
-        fontSize: 13,
-    },
-    cardsWrap: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 16,
-        marginTop: 6,
     },
     emptyText: {
-        fontSize: 15,
-        color: "#555",
-        marginTop: 10,
+        textAlign: 'center',
+        color: '#9CA3AF',
+        fontSize: 16,
+        marginTop: 40,
+    },
+    errorText: {
+        color: '#EF4444',
+        marginBottom: 10,
+        fontWeight: '600',
     },
 });
