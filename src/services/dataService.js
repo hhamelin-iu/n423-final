@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, limit as firestoreLimit, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, limit as firestoreLimit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { DEMO_USER, SIMULATED_USERS, SIMULATED_FEED_SUBMISSIONS } from './simulatedData';
 
@@ -357,20 +357,23 @@ export async function saveSubmission(submissionData, user, editId = null) {
   const payload = {
     ...submissionData,
     userId: user?.uid || DEMO_USER.uid,
-    userDisplayName: user?.displayName || DEMO_USER.displayName,
+    userDisplayName: user?.displayName || user?.username || DEMO_USER.displayName,
     userUsername: user?.username || DEMO_USER.username,
     userPhoto: user?.photoData || user?.photoURL || DEMO_USER.photoData,
-    updatedAt: new Date().toISOString(),
   };
 
   if (isFirebaseConfigured() && db && !user?.isDemo) {
     try {
+      const firestorePayload = {
+        ...payload,
+        updatedAt: serverTimestamp(),
+      };
       if (editId) {
-        await setDoc(doc(db, 'submissions', editId), payload, { merge: true });
+        await setDoc(doc(db, 'submissions', editId), firestorePayload, { merge: true });
         return editId;
       } else {
-        payload.createdAt = new Date().toISOString();
-        const ref = await addDoc(collection(db, 'submissions'), payload);
+        firestorePayload.createdAt = serverTimestamp();
+        const ref = await addDoc(collection(db, 'submissions'), firestorePayload);
         return ref.id;
       }
     } catch (err) {
@@ -379,27 +382,33 @@ export async function saveSubmission(submissionData, user, editId = null) {
   }
 
   // Demo / LocalStorage behavior
+  const demoPayload = {
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Demo / LocalStorage behavior
   ensureDemoSubmissionsInitialized();
   const current = currentDemoSubmissions;
   if (editId) {
-    const updated = current.map((item) => (item.id === editId ? { ...item, ...payload } : item));
+    const updated = current.map((item) => (item.id === editId ? { ...item, ...demoPayload } : item));
     saveLocalSubmissions(updated);
     // Broadcast manual edit
     demoChannel?.postMessage({
       type: 'SAVE_SUBMISSION',
-      submission: { ...payload, id: editId }
+      submission: { ...demoPayload, id: editId }
     });
     return editId;
   } else {
     const newId = `demo-sub-${Date.now()}`;
-    payload.id = newId;
-    payload.createdAt = new Date().toISOString();
-    const updated = [payload, ...current];
+    demoPayload.id = newId;
+    demoPayload.createdAt = new Date().toISOString();
+    const updated = [demoPayload, ...current];
     saveLocalSubmissions(updated);
     // Broadcast manual addition
     demoChannel?.postMessage({
       type: 'SAVE_SUBMISSION',
-      submission: payload
+      submission: demoPayload
     });
     return newId;
   }

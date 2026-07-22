@@ -1360,21 +1360,9 @@ export default function CreateScreen() {
                 playerNotes: playerNotes.trim(),
                 source: baseGame.source,
                 manual: baseGame.manual,
-                updatedAt: db ? serverTimestamp() : new Date().toISOString(),
             };
 
-            if (!db) {
-                await saveSubmission(submissionPayload, user, isEditing ? editingSubmissionId : null);
-            } else {
-                if (isEditing) {
-                    await setDoc(doc(db, 'submissions', editingSubmissionId), submissionPayload, { merge: true });
-                } else {
-                    await addDoc(collection(db, 'submissions'), {
-                        ...submissionPayload,
-                        createdAt: serverTimestamp(),
-                    });
-                }
-            }
+            await saveSubmission(submissionPayload, user, isEditing ? editingSubmissionId : null);
 
             const successMessage = isEditing ? 'Submission updated.' : 'Submission saved to LOREBoards.';
             setSubmitSuccess(successMessage);

@@ -394,7 +394,7 @@ export default function GameCard({
         }
     };
 
-    const canManage = Boolean(user?.uid && submissionId && ownerId && user.uid === ownerId);
+    const canManage = Boolean(user?.uid && submissionId && ownerId && (user.uid === ownerId || user?.isDemo));
     const actionAreaWidth = 120;
 
     return (

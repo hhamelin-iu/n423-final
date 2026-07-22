@@ -69,7 +69,7 @@ export default function SignupScreen() {
       await updateProfile(cred.user, { displayName: cleanUsername });
       await setDoc(
         doc(db, 'profiles', cred.user.uid),
-        { username: cleanUsername, email: cleanEmail },
+        { username: cleanUsername, displayName: cleanUsername, email: cleanEmail },
         { merge: true }
       );
       await setDoc(
