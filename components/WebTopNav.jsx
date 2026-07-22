@@ -27,6 +27,7 @@ export default function WebTopNav() {
   const [profileHovering, setProfileHovering] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchHovered, setSearchHovered] = useState(false);
 
   const handleSearch = () => {
     const q = searchQuery.trim();
@@ -151,30 +152,39 @@ export default function WebTopNav() {
   const styles = StyleSheet.create({
     outerContainer: {
       width: "100%",
-      backgroundColor: colors.surface,
+      backgroundColor: isDark ? "rgba(15, 23, 42, 0.95)" : "rgba(255, 255, 255, 0.95)",
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 6,
       zIndex: 1000,
     },
     innerContainer: {
       width: "100%",
       maxWidth: 1320,
       marginHorizontal: "auto",
-      paddingHorizontal: 24,
+      paddingHorizontal: isDesktopWeb ? 28 : 16,
       height: 72,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: 16,
     },
     brandWrapper: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
+      gap: 10,
+    },
+    brandIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      overflow: "hidden",
     },
     brandLink: {
       textDecorationLine: "none",
@@ -182,58 +192,76 @@ export default function WebTopNav() {
     },
     brandText: {
       fontFamily: "LexendZetta_400Regular",
-      fontSize: 22,
+      fontSize: 21,
       fontWeight: "900",
       color: colors.primary,
-      letterSpacing: -0.5,
+      letterSpacing: -0.6,
       textAlign: "left",
     },
     topNavDemoPill: {
       backgroundColor: colors.badgeBg,
       borderWidth: 1,
       borderColor: colors.badgeBorder,
-      paddingHorizontal: 9,
-      paddingVertical: 3,
-      borderRadius: 12,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
     },
     topNavDemoPillText: {
-      fontSize: 11,
-      fontWeight: "700",
+      fontSize: 10,
+      fontWeight: "800",
       color: colors.badgeText,
       letterSpacing: 0.8,
     },
     rightCluster: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 16,
+      gap: 14,
+      flexShrink: 1,
     },
     searchBarWrap: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.surfaceSecondary,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 22,
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.surfaceSecondary,
+      borderWidth: 1.5,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : colors.border,
+      borderRadius: 24,
       paddingHorizontal: 14,
-      height: 40,
-      minWidth: 200,
-      maxWidth: 320,
-      flex: 1,
+      height: 42,
+      width: isDesktopWeb ? 280 : 180,
+      transition: "all 0.2s ease",
+    },
+    searchBarWrapHovered: {
+      borderColor: colors.primary + "88",
     },
     searchBarWrapFocused: {
       borderColor: colors.primary,
       shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      backgroundColor: isDark ? "rgba(30, 41, 59, 0.9)" : "#FFFFFF",
+      width: isDesktopWeb ? 340 : 220,
     },
     searchInput: {
       flex: 1,
       fontSize: 14,
+      fontWeight: "500",
       color: colors.text,
       paddingVertical: 0,
       marginLeft: 8,
       outlineStyle: "none",
+    },
+    searchKeyBadge: {
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+      marginLeft: 6,
+    },
+    searchKeyBadgeText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.textMuted,
     },
     searchBtn: {
       padding: 4,
@@ -244,21 +272,26 @@ export default function WebTopNav() {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.surfaceSecondary,
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.surfaceSecondary,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
       justifyContent: "center",
       alignItems: "center",
       cursor: "pointer",
     },
     submitLinkBtn: {
-      borderRadius: 20,
+      borderRadius: 22,
       overflow: "hidden",
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 3,
     },
     submitGradient: {
-      paddingHorizontal: 18,
-      paddingVertical: 9,
-      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 22,
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
@@ -267,6 +300,7 @@ export default function WebTopNav() {
       fontSize: 14,
       fontWeight: "700",
       color: "#FFFFFF",
+      letterSpacing: -0.2,
     },
     profileDropdownWrap: {
       position: "relative",
@@ -278,9 +312,9 @@ export default function WebTopNav() {
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderRadius: 24,
-      backgroundColor: colors.surfaceSecondary,
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.surfaceSecondary,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : colors.border,
     },
     profileButtonHover: {
       borderColor: colors.primary,
@@ -305,7 +339,7 @@ export default function WebTopNav() {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.4)",
+      backgroundColor: "rgba(0,0,0,0.5)",
       justifyContent: "center",
       alignItems: "center",
     },
@@ -313,22 +347,22 @@ export default function WebTopNav() {
       fontSize: 14,
       fontWeight: "700",
       color: colors.text,
-      maxWidth: 120,
+      maxWidth: 110,
     },
     dropdownMenu: {
       position: "absolute",
-      top: 50,
+      top: 52,
       right: 0,
       width: 240,
       backgroundColor: colors.card,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : colors.border,
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.15,
-      shadowRadius: 16,
-      elevation: 10,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      elevation: 12,
       paddingVertical: 8,
       zIndex: 2000,
     },
@@ -348,7 +382,7 @@ export default function WebTopNav() {
     },
     demoTag: {
       fontSize: 11,
-      fontWeight: "600",
+      fontWeight: "700",
       color: colors.badgeText,
       backgroundColor: colors.badgeBg,
       paddingHorizontal: 6,
@@ -392,7 +426,7 @@ export default function WebTopNav() {
       color: "#EF4444",
     },
     loginBtn: {
-      borderRadius: 20,
+      borderRadius: 22,
       overflow: "hidden",
     },
   });
@@ -400,6 +434,7 @@ export default function WebTopNav() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.innerContainer}>
+        {/* Brand & Demo badge */}
         <View style={styles.brandWrapper}>
           <Link href="/" style={styles.brandLink}>
             <Text style={styles.brandText}>LOREBoards</Text>
@@ -411,15 +446,26 @@ export default function WebTopNav() {
           )}
         </View>
 
+        {/* Right Cluster: Search, Submit, Theme, Profile */}
         <View style={styles.rightCluster}>
-          <View style={[
-            styles.searchBarWrap,
-            searchFocused && styles.searchBarWrapFocused,
-          ]}>
-            <Ionicons name="search" size={17} color={colors.textMuted} />
+          {/* Sleek Search Bar */}
+          <Pressable
+            onHoverIn={() => setSearchHovered(true)}
+            onHoverOut={() => setSearchHovered(false)}
+            style={[
+              styles.searchBarWrap,
+              searchHovered && styles.searchBarWrapHovered,
+              searchFocused && styles.searchBarWrapFocused,
+            ]}
+          >
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={searchFocused ? colors.primary : colors.textMuted}
+            />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search games…"
+              placeholder={isDesktopWeb ? "Search games, completions..." : "Search..."}
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -428,16 +474,22 @@ export default function WebTopNav() {
               onSubmitEditing={handleSearch}
               returnKeyType="search"
             />
-            {searchQuery.length > 0 && (
+            {searchQuery.length > 0 ? (
               <Pressable
                 onPress={() => setSearchQuery("")}
                 style={styles.searchBtn}
+                accessibilityLabel="Clear search"
               >
-                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                <Ionicons name="close-circle" size={17} color={colors.textMuted} />
               </Pressable>
-            )}
-          </View>
+            ) : isDesktopWeb ? (
+              <View style={styles.searchKeyBadge}>
+                <Text style={styles.searchKeyBadgeText}>↵</Text>
+              </View>
+            ) : null}
+          </Pressable>
 
+          {/* Submit Action */}
           <Link href="/submit" style={styles.submitLinkBtn}>
             <LinearGradient
               colors={[colors.gradientMid, colors.gradientEnd]}
@@ -445,7 +497,7 @@ export default function WebTopNav() {
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
             >
-              <Ionicons name="add-circle" size={16} color="#FFFFFF" />
+              <Ionicons name="add-circle" size={17} color="#FFFFFF" />
               <Text style={styles.submitText}>Submit</Text>
             </LinearGradient>
           </Link>
@@ -466,6 +518,7 @@ export default function WebTopNav() {
             />
           </Pressable>
 
+          {/* Profile Dropdown or Login */}
           {user ? (
             <View style={styles.profileDropdownWrap}>
               <Pressable
@@ -482,7 +535,10 @@ export default function WebTopNav() {
                   style={styles.avatarWrap}
                 >
                   {photo ? (
-                    <Image source={{ uri: photo }} style={styles.avatarImage} />
+                    <Image
+                      source={typeof photo === 'number' || (typeof photo === 'object' && photo?.uri) ? photo : { uri: photo }}
+                      style={styles.avatarImage}
+                    />
                   ) : (
                     <Ionicons name="person-circle" size={34} color={colors.primary} />
                   )}

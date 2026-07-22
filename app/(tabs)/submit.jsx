@@ -12,7 +12,6 @@ import Footer from "../../components/Footer";
 import { useDevice } from "../../app/device-context";
 import { useAuth } from '../../src/auth/AuthContext';
 import { db } from '../../src/firebase/firebaseConfig';
-import { MOCK_GAMES } from '../../src/services/mockGames';
 import { saveSubmission, getSubmissionById } from '../../src/services/dataService';
 
 export default function CreateScreen() {
@@ -728,7 +727,13 @@ export default function CreateScreen() {
     const { showAlert } = useAlert();
     const [focusedField, setFocusedField] = useState(null);
 
-    const disabledFieldStyle = { backgroundColor: "#E4E4E4", borderColor: "#CFCFCF", borderWidth: 1 };
+    const disabledFieldStyle = {
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : colors.surfaceSecondary,
+        borderColor: isDark ? colors.border : '#CFCFCF',
+        borderWidth: 1,
+        color: isDark ? colors.textMuted : colors.text,
+        opacity: isDark ? 0.8 : 0.9,
+    };
 
     const updateTitleLayout = () => {
         requestAnimationFrame(() => {
@@ -1030,10 +1035,7 @@ export default function CreateScreen() {
                 }
 
                 if (!games.length) {
-                    games = MOCK_GAMES.filter((g) =>
-                        (g.title || g.name || '').toLowerCase().includes(cleanedTitle.toLowerCase()) ||
-                        (g.developer || '').toLowerCase().includes(cleanedTitle.toLowerCase())
-                    );
+                    games = [];
                 }
 
                 const normalized = games.map((game) => ({
@@ -1427,7 +1429,7 @@ export default function CreateScreen() {
             >
                 {searchLoading && (
                     <View style={styles.searchStatusRow}>
-                        <ActivityIndicator size="small" color="#333" />
+                        <ActivityIndicator size="small" color={colors.primary} />
                         <Text style={styles.searchStatusText}>Searching TheGamesDB…</Text>
                     </View>
                 )}
@@ -1486,12 +1488,12 @@ export default function CreateScreen() {
                             </Text>
                         )}
                         {!!editLoadError && (
-                            <Text style={{ color: "#B00020", marginBottom: 10, textAlign: 'center' }}>
+                            <Text style={{ color: colors.warningText || '#EF4444', marginBottom: 10, textAlign: 'center' }}>
                                 {editLoadError}
                             </Text>
                         )}
                         {loadingEdit && (
-                            <Text style={{ color: "#444", marginBottom: 10, textAlign: 'center' }}>
+                            <Text style={{ color: colors.textMuted, marginBottom: 10, textAlign: 'center' }}>
                                 Loading submission…
                             </Text>
                         )}
@@ -1516,7 +1518,7 @@ export default function CreateScreen() {
                                         value={title}
                                         onChangeText={setTitle}
                                         placeholder="Game title"
-                                        placeholderTextColor="rgba(0,0,0,0.5)"
+                                        placeholderTextColor={colors.textMuted}
                                         style={[
                                             styles.input,
                                             !isDesktopWeb && styles.inputMobile,
@@ -1551,7 +1553,7 @@ export default function CreateScreen() {
                                             value={tgdbId}
                                             onChangeText={setTgdbId}
                                             placeholder="0000"
-                                            placeholderTextColor="rgba(0,0,0,0.5)"
+                                            placeholderTextColor={colors.textMuted}
                                             style={[styles.input, !isDesktopWeb && styles.inputMobile, disabledFieldStyle]}
                                             editable={false}
                                             focusable={false}
@@ -1563,7 +1565,7 @@ export default function CreateScreen() {
                                             value={loreGameId}
                                             onChangeText={setLoreGameId}
                                             placeholder="0000"
-                                            placeholderTextColor="rgba(0,0,0,0.5)"
+                                            placeholderTextColor={colors.textMuted}
                                             style={[styles.input, !isDesktopWeb && styles.inputMobile, disabledFieldStyle]}
                                             editable={false}
                                             focusable={false}
@@ -1575,7 +1577,7 @@ export default function CreateScreen() {
                                             value={year}
                                             onChangeText={setYear}
                                             placeholder="2000"
-                                            placeholderTextColor="rgba(0,0,0,0.5)"
+                                            placeholderTextColor={colors.textMuted}
                                             style={[
                                                 styles.input,
                                                 !isDesktopWeb && styles.inputMobile,
@@ -1597,7 +1599,7 @@ export default function CreateScreen() {
                                     value={developer}
                                     onChangeText={setDeveloper}
                                     placeholder="Studio"
-                                    placeholderTextColor="rgba(0,0,0,0.5)"
+                                    placeholderTextColor={colors.textMuted}
                                     style={[
                                         styles.input,
                                         !isDesktopWeb && styles.inputMobile,
@@ -1642,7 +1644,7 @@ export default function CreateScreen() {
                                             <Ionicons
                                                 name={showPlatformDropdown ? "chevron-up" : "chevron-down"}
                                                 size={18}
-                                                color="#555"
+                                                color={colors.textMuted}
                                             />
                                         </Pressable>
                                         {showPlatformDropdown && (
@@ -1651,14 +1653,14 @@ export default function CreateScreen() {
                                                     value={newPlatformText}
                                                     onChangeText={setNewPlatformText}
                                                     placeholder="Search or add a platform"
-                                                    placeholderTextColor="rgba(0,0,0,0.5)"
+                                                    placeholderTextColor={colors.textMuted}
                                                     style={styles.platformSearchInput}
                                                 />
                                                 <View style={styles.platformSuggestionScroll}>
                                                     <ScrollView nestedScrollEnabled>
                                                         {platformSearchLoading && (
                                                             <View style={styles.platformSuggestionStatusRow}>
-                                                                <ActivityIndicator size="small" color="#333" />
+                                                                <ActivityIndicator size="small" color={colors.primary} />
                                                                 <Text style={styles.platformSuggestionStatusText}>Searching IGDB…</Text>
                                                             </View>
                                                         )}
@@ -1751,7 +1753,7 @@ export default function CreateScreen() {
                                             <Ionicons
                                                 name={showManualPlatformDropdown ? "chevron-up" : "chevron-down"}
                                                 size={18}
-                                                color="#555"
+                                                color={colors.textMuted}
                                             />
                                         </Pressable>
                                         {showManualPlatformDropdown && (
@@ -1760,14 +1762,14 @@ export default function CreateScreen() {
                                                     value={newPlatformText}
                                                     onChangeText={setNewPlatformText}
                                                     placeholder="Search or add a platform"
-                                                    placeholderTextColor="rgba(0,0,0,0.5)"
+                                                    placeholderTextColor={colors.textMuted}
                                                     style={[styles.platformSearchInput]}
                                                 />
                                                 <View style={styles.platformSuggestionScroll}>
                                                     <ScrollView nestedScrollEnabled>
                                                         {platformSearchLoading && (
                                                             <View style={styles.platformSuggestionStatusRow}>
-                                                                <ActivityIndicator size="small" color="#333" />
+                                                                <ActivityIndicator size="small" color={colors.primary} />
                                                                 <Text style={styles.platformSuggestionStatusText}>Searching IGDB…</Text>
                                                             </View>
                                                         )}
@@ -1845,7 +1847,7 @@ export default function CreateScreen() {
                                 disabled={!manualEntry}
                                 style={[
                                     styles.imageBox,
-                                    !manualEntry && { backgroundColor: "#818181", borderColor: "#818181" },
+                                    !manualEntry && { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#818181', borderColor: colors.border, opacity: 0.6 },
                                     isDesktopWeb ? styles.imageDesktop : styles.imageMobile,
                                 ]}
                             >
@@ -1853,12 +1855,12 @@ export default function CreateScreen() {
                                     <Image source={{ uri: imageData }} style={styles.previewImage} />
                                 ) : manualEntry ? (
                                     <View style={styles.placeholder}>
-                                        <Ionicons name="image-outline" size={42} color="#666" />
+                                        <Ionicons name="image-outline" size={42} color={colors.textMuted} />
                                         <Text style={styles.placeholderText}>Tap to add image</Text>
                                     </View>
                                 ) : (
                                     <View style={styles.disabledPlaceholder}>
-                                        <Ionicons name="close-circle" size={80} color="#f2f2f2" />
+                                        <Ionicons name="close-circle" size={80} color={isDark ? colors.surfaceSecondary : '#f2f2f2'} />
                                     </View>
                                 )}
                             </Pressable>
@@ -1900,7 +1902,7 @@ export default function CreateScreen() {
                                         value={completionValue}
                                         onChangeText={setCompletionValue}
                                         placeholder="Completion"
-                                        placeholderTextColor="rgba(0,0,0,0.5)"
+                                        placeholderTextColor={colors.textMuted}
                                         style={[
                                             styles.input,
                                             styles.inputTight,
@@ -1921,7 +1923,7 @@ export default function CreateScreen() {
                                         value={playerNotes}
                                         onChangeText={setPlayerNotes}
                                         placeholder="Add your notes..."
-                                        placeholderTextColor="rgba(0,0,0,0.5)"
+                                        placeholderTextColor={colors.textMuted}
                                         multiline
                                         style={[
                                             styles.input,

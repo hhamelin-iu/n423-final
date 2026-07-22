@@ -194,7 +194,7 @@ const server = http.createServer(async (req, res) => {
       const safeTerm = search.replace(/"/g, '\\"');
       const body = `
 search "${safeTerm}";
-fields id,name,first_release_date,total_rating,total_rating_count,hypes,platforms.id,platforms.name,release_dates.date,release_dates.platform,cover.image_id,screenshots.image_id,involved_companies.developer,involved_companies.company.name;
+fields id,name,category,first_release_date,total_rating,total_rating_count,hypes,platforms.id,platforms.name,release_dates.date,release_dates.platform,cover.image_id,screenshots.image_id,involved_companies.developer,involved_companies.company.name;
 limit ${Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 12) : 6};
 `;
 
@@ -287,7 +287,9 @@ limit 200;
         }
       }
 
-      const normalized = Array.isArray(games) ? games.map((g) => normalizeGame(g, platformVersionMap)) : [];
+      // Filter to main games only (category 0) — 'search' endpoint doesn't support where clauses
+      const mainGames = Array.isArray(games) ? games.filter((g) => g.category === 0 || g.category == null) : [];
+      const normalized = mainGames.map((g) => normalizeGame(g, platformVersionMap));
       normalized.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
       return respondJson(res, 200, { games: normalized });
     } catch (err) {

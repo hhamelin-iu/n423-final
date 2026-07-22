@@ -35,8 +35,10 @@ export default function GameCard({
     const infoTextMaxHeight = infoTextLineHeight * infoTextNumberOfLines;
     const expandedNotesMaxHeight = isDesktopWeb ? 230 : 190;
     const reservedNotesSpace = isDesktopWeb ? 16 : 8;
-    const statusLabel = completionType === 'progress' ? 'Progress' : 'High Score';
-    const statusColor = completionType === 'progress' ? colors.gradientMid : '#10B981';
+    const lowerType = (completionType || '').toLowerCase();
+    const isProgress = lowerType === 'progress' || lowerType === 'completion';
+    const statusLabel = isProgress ? 'Progress' : 'High Score';
+    const statusColor = isProgress ? colors.gradientMid : '#10B981';
     const [isNotesHovered, setIsNotesHovered] = useState(false);
     const [isCardHovered, setIsCardHovered] = useState(false);
     const [notesOpen, setNotesOpen] = useState(false);
@@ -219,17 +221,21 @@ export default function GameCard({
             paddingVertical: 4,
             borderRadius: 999,
             backgroundColor: colors.surfaceSecondary,
+            maxWidth: isDesktopWeb ? 140 : 110,
+            flexShrink: 1,
         },
         userPic: {
             width: isDesktopWeb ? 24 : 20,
             height: isDesktopWeb ? 24 : 20,
             borderRadius: 12,
             backgroundColor: colors.border,
+            flexShrink: 0,
         },
         username: {
             fontSize: isDesktopWeb ? 12 : 11,
             fontWeight: '700',
             color: colors.primary,
+            flexShrink: 1,
         },
         infoTextContainer: {
             position: 'relative',
@@ -351,7 +357,7 @@ export default function GameCard({
     });
 
     const displayName = userName || 'Player';
-    const displayPhoto = userPhoto ? { uri: userPhoto } : null;
+    const displayPhoto = userPhoto ? (typeof userPhoto === 'number' || (typeof userPhoto === 'object' && userPhoto !== null && userPhoto.uri) ? userPhoto : { uri: userPhoto }) : null;
     const completionDisplay = completionValue ? `${completionValue}` : '—';
     const hasImage = Boolean(imageUrl);
     const pushSearch = ({ query, user, gameId: gameIdParam }) => {
@@ -394,14 +400,18 @@ export default function GameCard({
     return (
         <View style={styles.cardSlot}>
             <Pressable
-                style={({ hovered }) => [
-                    styles.container,
-                    (hovered || isExpanded) && styles.cardHover,
-                ]}
+                style={{ width: '100%' }}
                 onHoverIn={handleCardHoverIn}
                 onHoverOut={handleCardHoverOut}
                 onPress={handleCardPress}
             >
+                {({ hovered }) => (
+                    <View
+                        style={[
+                            styles.container,
+                            (hovered || isExpanded) && styles.cardHover,
+                        ]}
+                    >
                 <View style={styles.actionRow}>
                     {canManage ? (
                         <>
@@ -519,7 +529,15 @@ export default function GameCard({
                                 {displayPhoto
                                     ? <Image source={displayPhoto} style={styles.userPic} />
                                     : <View style={styles.userPic} />}
-                                {isDesktopWeb && <Text style={styles.username}>{displayName}</Text>}
+                                {isDesktopWeb && (
+                                    <Text
+                                        style={styles.username}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {displayName}
+                                    </Text>
+                                )}
                             </Pressable>
                         </View>
                         <Pressable
@@ -563,7 +581,9 @@ export default function GameCard({
                         </View>
                     </View>
                 )}
-            </Pressable>
-        </View>
+            </View>
+        )}
+    </Pressable>
+</View>
     );
 }

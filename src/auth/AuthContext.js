@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../firebase/firebaseConfig';
-import { DEMO_USER } from '../services/demoData';
-import { isFirebaseConfigured } from '../services/dataService';
+import { DEMO_USER, isFirebaseConfigured } from '../services/dataService';
 
 const DEMO_USER_SESSION_KEY = 'loreboards_demo_user';
 

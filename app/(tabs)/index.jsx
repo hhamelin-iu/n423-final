@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Lay
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../styles/theme';
 import Footer from '../../components/Footer';
@@ -69,14 +70,63 @@ export default function HomeScreen() {
       maxWidth: 700,
       lineHeight: 24,
     },
-    heroLinkPill: {
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      paddingHorizontal: 14,
-      paddingVertical: 4,
-      borderRadius: 16,
+    heroCtaContainer: {
+      marginTop: 18,
+      alignItems: 'center',
+    },
+    heroCtaGroup: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    heroCtaBtn: {
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 22,
+      paddingVertical: 12,
+      borderRadius: 999,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      shadowColor: 'rgba(0, 0, 0, 0.25)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    heroCtaBtnHover: {
+      shadowOpacity: 0.35,
+      shadowRadius: 14,
+    },
+    heroCtaBtnActive: {
+      opacity: 0.9,
+    },
+    heroCtaBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
       color: '#4F46E5',
+      letterSpacing: -0.2,
+    },
+    heroCtaBtnSecondary: {
+      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.4)',
+      paddingHorizontal: 20,
+      paddingVertical: 11,
+      borderRadius: 999,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    heroCtaBtnSecondaryHover: {
+      backgroundColor: 'rgba(255, 255, 255, 0.28)',
+      borderColor: '#FFFFFF',
+    },
+    heroCtaBtnSecondaryText: {
+      fontSize: 15,
       fontWeight: '700',
-      overflow: 'hidden',
+      color: '#FFFFFF',
     },
     mainSection: {
       backgroundColor: colors.background,
@@ -256,27 +306,49 @@ export default function HomeScreen() {
             <Text style={styles.heroTitle}>Welcome to LOREBoards!</Text>
 
             <Text style={styles.heroSubtitle}>
-              {user ? (
-                <>
-                  Looking to add a game completion of your own?{' '}
-                  <Pressable onPress={() => router.push('/submit')}>
-                    <Text style={styles.heroLinkPill}>Submit a New Entry ➔</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  To add entries of your own, you can{' '}
-                  <Pressable onPress={() => router.push('/login')}>
-                    <Text style={styles.heroLinkPill}>Explore as Demo User</Text>
-                  </Pressable>{' '}
-                  or{' '}
-                  <Pressable onPress={() => router.push('/signup')}>
-                    <Text style={styles.heroLinkPill}>Create an Account</Text>
-                  </Pressable>
-                  .
-                </>
-              )}
+              Track, showcase, and share your video game completions. Log high scores, 100% runs, and milestones across every platform.
             </Text>
+
+            <View style={styles.heroCtaContainer}>
+              {user ? (
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    styles.heroCtaBtn,
+                    hovered && styles.heroCtaBtnHover,
+                    pressed && styles.heroCtaBtnActive,
+                  ]}
+                  onPress={() => router.push('/submit')}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color="#4F46E5" />
+                  <Text style={styles.heroCtaBtnText}>Submit a New Entry</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#4F46E5" />
+                </Pressable>
+              ) : (
+                <View style={styles.heroCtaGroup}>
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      styles.heroCtaBtn,
+                      hovered && styles.heroCtaBtnHover,
+                      pressed && styles.heroCtaBtnActive,
+                    ]}
+                    onPress={() => router.push('/login')}
+                  >
+                    <Ionicons name="sparkles-outline" size={18} color="#4F46E5" />
+                    <Text style={styles.heroCtaBtnText}>Explore as Demo User</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      styles.heroCtaBtnSecondary,
+                      hovered && styles.heroCtaBtnSecondaryHover,
+                      pressed && styles.heroCtaBtnActive,
+                    ]}
+                    onPress={() => router.push('/signup')}
+                  >
+                    <Text style={styles.heroCtaBtnSecondaryText}>Create an Account</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
           </View>
         </LinearGradient>
 

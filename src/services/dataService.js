@@ -1,10 +1,55 @@
 import { collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, limit as firestoreLimit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-import { DEMO_USER, INITIAL_DEMO_SUBMISSIONS } from './demoData';
-import { MOCK_GAMES, MOCK_PLATFORMS } from './mockGames';
-import { SIMULATED_FEED_SUBMISSIONS } from './simulatedData';
+import { DEMO_USER, SIMULATED_USERS, SIMULATED_FEED_SUBMISSIONS } from './simulatedData';
 
-const STORAGE_KEY_SUBMISSIONS = 'loreboards_demo_submissions_v9';
+export const MOCK_GAMES = [];
+
+export const MOCK_PLATFORMS = [
+  'PC',
+  'PlayStation 5',
+  'PlayStation 4',
+  'PlayStation 3',
+  'PlayStation 2',
+  'PlayStation',
+  'Xbox Series X|S',
+  'Xbox One',
+  'Xbox 360',
+  'Xbox',
+  'Nintendo Switch',
+  'Wii U',
+  'Wii',
+  'GameCube',
+  'Nintendo 64',
+  'Super NES',
+  'NES',
+  'Game Boy',
+  'Game Boy Advance',
+  'Nintendo DS',
+  'Nintendo 3DS',
+  'iOS',
+  'Android',
+  'macOS',
+  'Linux',
+  'Sega Genesis',
+  'Dreamcast',
+  'Arcade',
+  'Retro / Other'
+];
+
+export function hydrateSubmissionUser(sub) {
+  if (!sub) return sub;
+  const user = SIMULATED_USERS[sub.userId] || (sub.userId === DEMO_USER.uid ? DEMO_USER : null);
+  return {
+    ...sub,
+    userDisplayName: sub.userDisplayName || user?.displayName || 'Gamer',
+    userUsername: sub.userUsername || user?.username || 'Gamer',
+    userPhoto: sub.userPhoto || user?.userPhoto || user?.photoData || null,
+  };
+}
+
+const HYDRATED_SIMULATED_SUBMISSIONS = SIMULATED_FEED_SUBMISSIONS.map(hydrateSubmissionUser);
+
+const STORAGE_KEY_SUBMISSIONS = 'loreboards_demo_submissions_v13';
 const STORAGE_KEY_USER_PROFILE = 'loreboards_demo_user_profile';
 
 const demoChannel = typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined'
@@ -103,35 +148,28 @@ const startGlobalSimulation = () => {
         if (Array.isArray(SIMULATED_FEED_SUBMISSIONS) && SIMULATED_FEED_SUBMISSIONS.length > 0) {
           ensureDemoSubmissionsInitialized();
 
-          // Find the next game template that is not already in currentDemoSubmissions by title or igdbId
-          let template = null;
-          let attempts = 0;
-          while (attempts < SIMULATED_FEED_SUBMISSIONS.length) {
-            const currentT = SIMULATED_FEED_SUBMISSIONS[nextSimulatedIndex];
-            nextSimulatedIndex = (nextSimulatedIndex + 1) % SIMULATED_FEED_SUBMISSIONS.length;
-
-            const alreadyExists = currentDemoSubmissions.some(
+          // Pick a random game template that is not currently visible in currentDemoSubmissions
+          const unshownTemplates = SIMULATED_FEED_SUBMISSIONS.filter(
+            (currentT) => !currentDemoSubmissions.some(
               (s) => s.title.toLowerCase() === currentT.title.toLowerCase() || s.igdbId === currentT.igdbId
-            );
+            )
+          );
 
-            if (!alreadyExists) {
-              template = currentT;
-              break;
-            }
-            attempts++;
+          let template = null;
+          if (unshownTemplates.length > 0) {
+            const randomIndex = Math.floor(Math.random() * unshownTemplates.length);
+            template = unshownTemplates[randomIndex];
+          } else {
+            // Fallback: pick a random item from the full pool if all games are currently in view
+            const randomIndex = Math.floor(Math.random() * SIMULATED_FEED_SUBMISSIONS.length);
+            template = SIMULATED_FEED_SUBMISSIONS[randomIndex];
           }
 
-          // If all games are already in currentDemoSubmissions, fallback to next index to avoid getting stuck
-          if (!template) {
-            template = SIMULATED_FEED_SUBMISSIONS[nextSimulatedIndex];
-            nextSimulatedIndex = (nextSimulatedIndex + 1) % SIMULATED_FEED_SUBMISSIONS.length;
-          }
-
-          const newSub = {
+          const newSub = hydrateSubmissionUser({
             ...template,
             id: `sim-sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             createdAt: new Date().toISOString()
-          };
+          });
 
           const updated = [newSub, ...currentDemoSubmissions];
           const capped = updated.slice(0, 60);
@@ -169,18 +207,20 @@ export function isFirebaseConfigured() {
 
 // Helpers for LocalStorage demo persistence
 function getLocalSubmissions() {
+  const initial = HYDRATED_SIMULATED_SUBMISSIONS.slice(0, 12);
   if (typeof window === 'undefined' || !window.localStorage) {
-    return INITIAL_DEMO_SUBMISSIONS;
+    return initial;
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY_SUBMISSIONS);
     if (!raw) {
-      window.localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(INITIAL_DEMO_SUBMISSIONS));
-      return INITIAL_DEMO_SUBMISSIONS;
+      window.localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(initial));
+      return initial;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(hydrateSubmissionUser) : initial;
   } catch {
-    return INITIAL_DEMO_SUBMISSIONS;
+    return initial;
   }
 }
 
@@ -419,4 +459,4 @@ export async function searchGames(queryTerm, apiBaseUrl = '') {
   );
 }
 
-export { MOCK_PLATFORMS, MOCK_GAMES, DEMO_USER };
+export { DEMO_USER };

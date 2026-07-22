@@ -176,7 +176,10 @@ export default function ProfileScreen() {
       <View style={styles.profileHeader}>
         <Pressable onPress={handlePickImage}>
           {photoData ? (
-            <Image source={{ uri: photoData }} style={styles.avatar} />
+            <Image
+              source={typeof photoData === 'number' || (typeof photoData === 'object' && photoData?.uri) ? photoData : { uri: photoData }}
+              style={styles.avatar}
+            />
           ) : (
             <Ionicons name="person-circle-outline" size={84} color={colors.primary} />
           )}
