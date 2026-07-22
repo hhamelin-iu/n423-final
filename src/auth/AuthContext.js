@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
   const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
-    // If Firebase isn't configured, default immediately to Demo User for portfolio reviewers
+    // If Firebase isn't configured, default immediately to Demo User for standalone review
     const hasFirebase = isFirebaseConfigured();
 
     if (!hasFirebase) {
@@ -28,33 +28,24 @@ export function AuthProvider({ children }) {
     }
 
     // Check if demo session was manually activated in localStorage
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const storedDemo = window.localStorage.getItem(DEMO_USER_SESSION_KEY);
-      if (storedDemo) {
-        try {
-          setUser(JSON.parse(storedDemo));
-          setIsDemoMode(true);
-          return;
-        } catch {
-          // ignore error
-        }
-      }
-    }
+    const savedDemo = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(DEMO_USER_SESSION_KEY) : null;
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
         setIsDemoMode(false);
-      } else {
-        // Fallback to Demo User if not signed in via Firebase
-        const savedDemo = typeof window !== 'undefined' ? window.localStorage?.getItem(DEMO_USER_SESSION_KEY) : null;
-        if (savedDemo) {
+      } else if (savedDemo) {
+        try {
           setUser(JSON.parse(savedDemo));
           setIsDemoMode(true);
-        } else {
-          setUser(DEMO_USER);
-          setIsDemoMode(true);
+        } catch {
+          setUser(null);
+          setIsDemoMode(false);
         }
+      } else {
+        // With backend configured, default to signed out state unless user explicitly logs in or chooses demo mode
+        setUser(null);
+        setIsDemoMode(false);
       }
     });
 
