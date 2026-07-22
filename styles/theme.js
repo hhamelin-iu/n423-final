@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDevice } from '../app/device-context';
@@ -113,67 +113,69 @@ export function useTheme() {
   const colors = context?.colors || LIGHT_COLORS;
   const isDark = context?.isDark || false;
 
-  const dynamicStyles = StyleSheet.create({
-    scrollContainer: {
-      backgroundColor: colors.background,
-      flexGrow: 1,
-      justifyContent: 'space-between'
-    },
-    mainContainer: {
-      padding: isDesktopWeb ? 30 : 16,
-      maxWidth: 1280,
-      width: '100%',
-      marginHorizontal: 'auto'
-    },
-    title: {
-      fontSize: isDesktopWeb ? 34 : 26,
-      fontWeight: '800',
-      color: colors.text,
-      marginTop: isDesktopWeb ? 20 : 10,
-      marginBottom: 16,
-      letterSpacing: -0.5
-    },
-    subtitle: {
-      fontSize: isDesktopWeb ? 18 : 15,
-      fontWeight: '500',
-      color: colors.textMuted,
-      marginBottom: 24,
-      lineHeight: 24
-    },
-    body: {
-      fontSize: 15,
-      fontWeight: '400',
-      color: colors.text,
-      marginBottom: 16,
-      lineHeight: 22
-    },
-    link: {
-      color: colors.primary,
-      fontWeight: '600'
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: 16,
-      padding: 20,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 2
-    },
-    input: {
-      backgroundColor: colors.surfaceSecondary,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      fontSize: 15,
-      color: colors.text
-    }
-  });
+  const dynamicStyles = useMemo(() => {
+    return StyleSheet.create({
+      scrollContainer: {
+        backgroundColor: colors.background,
+        flexGrow: 1,
+        justifyContent: 'space-between'
+      },
+      mainContainer: {
+        padding: isDesktopWeb ? 30 : 16,
+        maxWidth: 1280,
+        width: '100%',
+        marginHorizontal: 'auto'
+      },
+      title: {
+        fontSize: isDesktopWeb ? 34 : 26,
+        fontWeight: '800',
+        color: colors.text,
+        marginTop: isDesktopWeb ? 20 : 10,
+        marginBottom: 16,
+        letterSpacing: -0.5
+      },
+      subtitle: {
+        fontSize: isDesktopWeb ? 18 : 15,
+        fontWeight: '500',
+        color: colors.textMuted,
+        marginBottom: 24,
+        lineHeight: 24
+      },
+      body: {
+        fontSize: 15,
+        fontWeight: '400',
+        color: colors.text,
+        marginBottom: 16,
+        lineHeight: 22
+      },
+      link: {
+        color: colors.primary,
+        fontWeight: '600'
+      },
+      card: {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 2
+      },
+      input: {
+        backgroundColor: colors.surfaceSecondary,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: colors.text
+      }
+    });
+  }, [colors, isDesktopWeb]);
 
   return {
     ...context,

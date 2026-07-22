@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Pressable, Animated, Easing, ScrollView, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,17 +19,17 @@ export default function GameCard({
     completionValue,
     playerNotes,
     imageUrl,
-    userName,
+    userId,
+    userDisplayName,
+    userUsername,
     userPhoto,
     manual,
+    source,
     onDelete,
-    ownerId,
 }) {
-    const router = useRouter();
     const { isDesktopWeb } = useDevice();
     const { user } = useAuth();
     const { colors, isDark } = useTheme();
-    const { showAlert, showConfirm } = useAlert();
 
     const infoTextNumberOfLines = 3;
     const infoTextLineHeight = isDesktopWeb ? 18 : 16;
@@ -99,7 +99,7 @@ export default function GameCard({
         );
     };
 
-    const styles = StyleSheet.create({
+    const styles = useMemo(() => StyleSheet.create({
         cardSlot: {
             width: isDesktopWeb ? 280 : 220,
             backgroundColor: 'transparent',
@@ -355,9 +355,9 @@ export default function GameCard({
         actionDangerText: {
             color: '#EF4444',
         },
-    });
+    }), [colors, isDesktopWeb]);
 
-    const displayName = userName || 'Player';
+    const displayName = userDisplayName || userUsername || 'Player';
     const displayPhoto = userPhoto ? (typeof userPhoto === 'number' || (typeof userPhoto === 'object' && userPhoto !== null && userPhoto.uri) ? userPhoto : { uri: userPhoto }) : null;
     const completionDisplay = completionValue ? `${completionValue}` : '—';
     const hasImage = Boolean(imageUrl);
@@ -395,7 +395,7 @@ export default function GameCard({
         }
     };
 
-    const canManage = Boolean(user?.uid && submissionId && ownerId && (user.uid === ownerId || (user?.isDemo && !isFirebaseConfigured())));
+    const canManage = Boolean(user?.uid && submissionId && userId && (user.uid === userId || user?.isDemo || !isFirebaseConfigured()));
     const actionAreaWidth = 120;
 
     return (
