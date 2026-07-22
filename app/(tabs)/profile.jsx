@@ -186,7 +186,7 @@ export default function ProfileScreen() {
           <Text style={styles.changePhotoText}>Change photo</Text>
         </Pressable>
         <Text style={styles.name}>{displayName}</Text>
-        {isDemoMode && <Text style={styles.demoTag}>Demo Profile</Text>}
+        {isDemoMode && !isFirebaseConfigured() && <Text style={styles.demoTag}>Demo Profile</Text>}
       </View>
       <View style={styles.topList}>
         <Pressable style={styles.listItem} onPress={() => router.push('/search')}>

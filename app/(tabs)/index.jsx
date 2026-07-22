@@ -9,7 +9,7 @@ import Footer from '../../components/Footer';
 import GameCard from '../../components/GameCard';
 import { useDevice } from '../../app/device-context';
 import { useAuth } from '../../src/auth/AuthContext';
-import { subscribeSubmissions, deleteSubmission } from '../../src/services/dataService';
+import { subscribeSubmissions, deleteSubmission, isFirebaseConfigured } from '../../src/services/dataService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -21,6 +21,7 @@ export default function HomeScreen() {
   const [loadingSubs, setLoadingSubs] = useState(true);
   const [subsError, setSubsError] = useState('');
   const seenIds = useRef(new Set());
+  const hasFirebase = isFirebaseConfigured();
   const compactHeight = height < 900;
   const heroTitleSize = Math.round((isDesktopWeb ? 34 : 24) * (compactHeight ? 0.9 : 1));
   const heroSubtitleSize = Math.round((isDesktopWeb ? 18 : 15) * (compactHeight ? 0.92 : 1));
@@ -333,8 +334,8 @@ export default function HomeScreen() {
                     ]}
                     onPress={() => router.push('/login')}
                   >
-                    <Ionicons name="sparkles-outline" size={18} color="#4F46E5" />
-                    <Text style={styles.heroCtaBtnText}>Explore as Demo User</Text>
+                    <Ionicons name={hasFirebase ? "log-in-outline" : "sparkles-outline"} size={18} color="#4F46E5" />
+                    <Text style={styles.heroCtaBtnText}>{hasFirebase ? "Log In" : "Explore as Demo User"}</Text>
                   </Pressable>
                   <Pressable
                     style={({ hovered, pressed }) => [

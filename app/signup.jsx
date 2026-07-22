@@ -211,9 +211,11 @@ export default function SignupScreen() {
               />
               {!!error && <Text style={styles.error}>{error}</Text>}
 
-              <Pressable style={styles.demoButton} onPress={handleDemoSignup}>
-                <Text style={styles.demoButtonText}>⚡ Quick Demo Access</Text>
-              </Pressable>
+              {!hasFirebase && (
+                <Pressable style={styles.demoButton} onPress={handleDemoSignup}>
+                  <Text style={styles.demoButtonText}>⚡ Quick Demo Access</Text>
+                </Pressable>
+              )}
             </View>
 
             <AnimatedButton

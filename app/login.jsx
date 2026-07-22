@@ -210,9 +210,11 @@ export default function LoginScreen() {
 
               {!!error && <Text style={styles.error}>{error}</Text>}
 
-              <Pressable style={styles.demoButton} onPress={handleDemoLogin}>
-                <Text style={styles.demoButtonText}>⚡ Quick Demo Access</Text>
-              </Pressable>
+              {!hasFirebase && (
+                <Pressable style={styles.demoButton} onPress={handleDemoLogin}>
+                  <Text style={styles.demoButtonText}>⚡ Quick Demo Access</Text>
+                </Pressable>
+              )}
             </View>
 
             <AnimatedButton title={submitting ? 'Logging in...' : 'Log In'} onPress={handleLogin} />

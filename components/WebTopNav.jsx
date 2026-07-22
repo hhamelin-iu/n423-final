@@ -439,7 +439,7 @@ export default function WebTopNav() {
           <Link href="/" style={styles.brandLink}>
             <Text style={styles.brandText}>LOREBoards</Text>
           </Link>
-          {isDemoMode && (
+          {isDemoMode && !isFirebaseConfigured() && (
             <View style={styles.topNavDemoPill}>
               <Text style={styles.topNavDemoPillText}>DEMO</Text>
             </View>
@@ -561,7 +561,7 @@ export default function WebTopNav() {
                   <Pressable style={styles.dropdownHeader} onPress={handlePickImage}>
                     <Text style={styles.dropdownHeaderText}>Signed in as</Text>
                     <Text style={styles.dropdownHeaderName}>{username}</Text>
-                    {isDemoMode && <Text style={styles.demoTag}>Demo Mode</Text>}
+                    {isDemoMode && !isFirebaseConfigured() && <Text style={styles.demoTag}>Demo Mode</Text>}
                     <Text style={styles.dropdownHeaderSub}>Click avatar to change photo</Text>
                   </Pressable>
                   <View style={styles.dropdownDivider} />

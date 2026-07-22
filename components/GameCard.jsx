@@ -7,6 +7,7 @@ import { useDevice } from "../app/device-context";
 import { useAuth } from '../src/auth/AuthContext';
 import { useTheme } from '../styles/theme';
 import { useAlert } from '../src/context/AlertContext';
+import { isFirebaseConfigured } from '../src/services/dataService';
 
 export default function GameCard({
     submissionId,
@@ -394,7 +395,7 @@ export default function GameCard({
         }
     };
 
-    const canManage = Boolean(user?.uid && submissionId && ownerId && (user.uid === ownerId || user?.isDemo));
+    const canManage = Boolean(user?.uid && submissionId && ownerId && (user.uid === ownerId || (user?.isDemo && !isFirebaseConfigured())));
     const actionAreaWidth = 120;
 
     return (

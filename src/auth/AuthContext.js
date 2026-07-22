@@ -27,23 +27,12 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Check if demo session was manually activated in localStorage
-    const savedDemo = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(DEMO_USER_SESSION_KEY) : null;
-
+    // Backend active mode: strictly use Firebase Auth (no demo auto-login or fallback)
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
         setIsDemoMode(false);
-      } else if (savedDemo) {
-        try {
-          setUser(JSON.parse(savedDemo));
-          setIsDemoMode(true);
-        } catch {
-          setUser(null);
-          setIsDemoMode(false);
-        }
       } else {
-        // With backend configured, default to signed out state unless user explicitly logs in or chooses demo mode
         setUser(null);
         setIsDemoMode(false);
       }
@@ -53,6 +42,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInAsDemo = (customProfile = null) => {
+    if (isFirebaseConfigured()) return; // No demo access on backend version
     const activeDemoUser = customProfile ? { ...DEMO_USER, ...customProfile } : DEMO_USER;
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(DEMO_USER_SESSION_KEY, JSON.stringify(activeDemoUser));
