@@ -9,36 +9,62 @@ export default function PortfolioReturnBanner() {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
 
     const urlParams = new URLSearchParams(window.location.search);
+    const search = (window.location.search || "").toLowerCase();
+    const href = (window.location.href || "").toLowerCase();
+
+    const fromParam =
+      urlParams.get("from") === "portfolio" ||
+      urlParams.get("ref") === "portfolio" ||
+      search.includes("from=portfolio") ||
+      search.includes("ref=portfolio") ||
+      href.includes("from=portfolio") ||
+      href.includes("ref=portfolio");
+
+    const referrer = (document.referrer || "").toLowerCase();
+    const host = (window.location.host || "").toLowerCase();
+
+    const isInternalReferrer =
+      referrer &&
+      (referrer.includes(host) ||
+        (referrer.includes("projects.havenhamelin.work") && (host.includes("wasworld.xyz") || host.includes("vercel.app"))) ||
+        ((referrer.includes("wasworld.xyz") || referrer.includes("vercel.app")) && host.includes("projects.havenhamelin.work")));
+
+    const fromReferrer =
+      !isInternalReferrer &&
+      (referrer.includes("havenhamelin.work") ||
+        referrer.includes("portfolio") ||
+        (referrer.includes("localhost") && !isInternalReferrer) ||
+        (referrer.includes("127.0.0.1") && !isInternalReferrer));
+
+    if (fromReferrer || (fromParam && !isInternalReferrer)) {
+      sessionStorage.setItem("from_portfolio", "true");
+      sessionStorage.removeItem("from_portfolio_dismissed");
+      if (fromReferrer) {
+        sessionStorage.setItem("portfolio_url", document.referrer);
+      }
+    } else if (!isInternalReferrer && !fromParam) {
+      sessionStorage.removeItem("from_portfolio");
+      sessionStorage.removeItem("from_portfolio_dismissed");
+    }
+
     const isDismissed =
       urlParams.get("dismiss_portfolio_banner") === "1" ||
       sessionStorage.getItem("from_portfolio_dismissed") === "true";
 
-    if (isDismissed) return;
-
-    const fromParam =
-      urlParams.get("from") === "portfolio" || urlParams.get("ref") === "portfolio";
-    const referrer = document.referrer || "";
-    const fromReferrer =
-      referrer.includes("havenhamelin.work") ||
-      referrer.includes("portfolio") ||
-      referrer.includes("localhost") ||
-      referrer.includes("127.0.0.1");
-
-    if (fromParam || fromReferrer) {
-      sessionStorage.setItem("from_portfolio", "true");
+    if (isDismissed) {
+      setShow(false);
+      return;
     }
 
     const isFromPortfolio = sessionStorage.getItem("from_portfolio") === "true";
     if (isFromPortfolio) {
-      if (
-        fromReferrer &&
-        (referrer.includes("havenhamelin.work") ||
-          referrer.includes("localhost") ||
-          referrer.includes("127.0.0.1"))
-      ) {
-        setPortfolioUrl(referrer);
+      const storedUrl = sessionStorage.getItem("portfolio_url");
+      if (storedUrl && !storedUrl.includes("projects.havenhamelin.work")) {
+        setPortfolioUrl(storedUrl);
       }
       setShow(true);
+    } else {
+      setShow(false);
     }
   }, []);
 
@@ -48,6 +74,7 @@ export default function PortfolioReturnBanner() {
     setShow(false);
     if (typeof window !== "undefined") {
       sessionStorage.setItem("from_portfolio_dismissed", "true");
+      sessionStorage.removeItem("from_portfolio");
     }
   };
 
