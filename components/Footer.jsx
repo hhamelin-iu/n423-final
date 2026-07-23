@@ -126,6 +126,39 @@ export default function Footer() {
 
           <Text style={style.divider}>·</Text>
 
+          <Link
+            href="https://github.com/hhamelin-iu/n423-final"
+            target="_blank"
+            rel="noopener noreferrer"
+            asChild
+          >
+            <Pressable>
+              {({ hovered }) => (
+                <View
+                  style={[
+                    style.navLinkItem,
+                    hovered && {
+                      backgroundColor: isDark
+                        ? "rgba(99, 102, 241, 0.18)"
+                        : colors.primaryLight,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      style.navLinkText,
+                      hovered && { textDecorationLine: "underline" },
+                    ]}
+                  >
+                    Source Code
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </Link>
+
+          <Text style={style.divider}>·</Text>
+
           <View style={style.disabledNavLinkItem}>
             <Text style={style.disabledNavLinkText}>Privacy Policy</Text>
           </View>
