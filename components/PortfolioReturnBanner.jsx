@@ -88,7 +88,7 @@ export default function PortfolioReturnBanner() {
         boxShadow: "0 4px 16px rgba(15, 23, 42, 0.4)",
         color: "#f8fafc",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        padding: "10px 20px",
+        padding: "8px 12px",
         position: "relative",
         width: "100%",
         boxSizing: "border-box",
@@ -102,17 +102,21 @@ export default function PortfolioReturnBanner() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 16,
+          gap: "8px 12px",
           flexWrap: "wrap",
+          position: "relative",
+          paddingRight: 32,
         }}
       >
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            fontSize: "0.9rem",
+            gap: "6px 10px",
+            fontSize: "0.85rem",
             color: "#e2e8f0",
+            flexWrap: "wrap",
+            flex: "1 1 auto",
           }}
         >
           <span
@@ -120,17 +124,19 @@ export default function PortfolioReturnBanner() {
               background: "#0284c7",
               color: "#ffffff",
               fontWeight: 700,
-              fontSize: "0.72rem",
+              fontSize: "0.7rem",
               textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              padding: "3px 10px",
+              letterSpacing: "0.05em",
+              padding: "2px 8px",
               borderRadius: 20,
               display: "inline-block",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             Portfolio Demo
           </span>
-          <span>
+          <span style={{ lineHeight: 1.4 }}>
             You are currently viewing a live demo project by <strong>Haven Hamelin</strong>.
           </span>
         </div>
@@ -138,7 +144,8 @@ export default function PortfolioReturnBanner() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: 12,
+            flexShrink: 0,
           }}
         >
           <a
@@ -146,22 +153,23 @@ export default function PortfolioReturnBanner() {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
               background: "rgba(56, 189, 248, 0.12)",
               color: "#38bdf8",
               border: "1px solid #38bdf8",
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: 6,
-              fontSize: "0.85rem",
+              fontSize: "0.82rem",
               fontWeight: 600,
               textDecoration: "none",
+              whiteSpace: "nowrap",
               transition: "all 0.2s ease",
             }}
           >
             <svg
               viewBox="0 0 24 24"
-              width="15"
-              height="15"
+              width="14"
+              height="14"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.2"
@@ -173,23 +181,26 @@ export default function PortfolioReturnBanner() {
             </svg>
             Return to Portfolio
           </a>
-          <button
-            type="button"
-            onClick={handleDismiss}
-            aria-label="Dismiss banner"
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#94a3b8",
-              fontSize: "1.3rem",
-              lineHeight: 1,
-              cursor: "pointer",
-              padding: "0 4px",
-            }}
-          >
-            &times;
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="Dismiss banner"
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 2,
+            background: "transparent",
+            border: "none",
+            color: "#94a3b8",
+            fontSize: "1.4rem",
+            lineHeight: 1,
+            cursor: "pointer",
+            padding: "4px 6px",
+          }}
+        >
+          &times;
+        </button>
       </div>
     </div>
   );
