@@ -11,6 +11,7 @@ import { DeviceProvider, useDevice } from './device-context';
 
 import { ThemeProvider, useTheme } from '../styles/theme';
 import { AlertProvider } from '../src/context/AlertContext';
+import PortfolioReturnBanner from '../components/PortfolioReturnBanner';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -45,6 +46,7 @@ function AppContent() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, fontFamily: 'NotoSans_400Regular' }}>
+      <PortfolioReturnBanner />
       {isDesktopWeb && <WebTopNav />}
       <Stack
         screenOptions={{
